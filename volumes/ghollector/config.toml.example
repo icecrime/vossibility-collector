@@ -1,0 +1,102 @@
+# NSQ global nfiguration
+#   - channel: identifier of the application
+#   - lookupd: location of the lookup daemon (format: `address:port`)
+
+[nsq]
+channel = "ghollector"
+lookupd = "lookupd:4161"
+
+# List of repositories to monitor. For each repository:
+#   - user: Github user name
+#   - repo: Github repository name
+#   - topic: associated NSQ topic to listen for events
+#   - events[="default"]: identifier of the event set to subscribe to
+
+[repositories]
+
+    [repositories.engine]
+    user = "docker"
+    repo = "docker"
+    topic = "hooks-docker"
+
+# Event sets definition: each set defines a list of events to subscribe to, and
+# are referenced by repositories definitions.
+
+[event_set]
+
+# Default event set is a narrow subset.
+default = [
+    "commit_comment",
+    "fork",
+    "issue_comment",
+    "issues",
+    "pull_request",
+    "pull_request_review_comment",
+    "watch"
+]
+
+full = [
+    "commit_comment",
+    "create",
+    "delete",
+    "deployment",
+    "deployment_status",
+    "follow",
+    "fork",
+    "fork_apply",
+    "gollum",
+    "issue_comment",
+    "issues",
+    "member",
+    "membership",
+    "page_build",
+    "public",
+    "pull_request",
+    "pull_request_review_comment",
+    "push",
+    "release",
+    "repositories",
+    "status",
+    "team_add",
+    "watch"
+]
+
+# Masks to apply to different entity type before forwarding to the storage
+# backend. We usually don't need every field provided by Github (especially the
+# various links, user, and repository information).
+#
+# Each key in the masks table must be a valid Github event identifier.
+
+[masks]
+
+pull_request = [
+    # Event
+    "action",
+    "number",
+
+    # Content
+    "pull_request.number",
+    "pull_request.state",
+    "pull_request.title",
+    "pull_request.body",
+    "pull_request.user.login",
+    "pull_request.locked",
+
+    # Timestamps information
+    "pull_request.created_at",
+    "pull_request.updated_at",
+    "pull_request.closed_at",
+    "pull_request.merged_at",
+
+    # Merge status
+    "pull_request.merged",
+    "pull_request.mergeable",
+    "pull_request.merge_by.login",
+
+    #Statistics
+    "pull_request.comments",
+    "pull_request.commits",
+    "pull_request.additions",
+    "pull_request.deletions",
+    "pull_request.changed_files"
+]
