@@ -1,14 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/bitly/go-nsq"
 	"github.com/codegangsta/cli"
-	"github.com/mattbaird/elastigo/api"
 )
 
 var runCommand = cli.Command{
@@ -17,43 +17,61 @@ var runCommand = cli.Command{
 	Action: doRunCommand,
 }
 
-type NSQHandler struct {
-	Config     *Config
-	Repository *Repository
-}
-
-func (n *NSQHandler) HandleMessage(m *nsq.Message) error {
-	return onMessage(n.Config, n.Repository, m)
-}
-
 func doRunCommand(c *cli.Context) {
-	conf := ParseConfigOrDie(c.GlobalString("config"))
-	api.Domain = conf.ElasticSearch
+	config := ParseConfigOrDie(c.GlobalString("config"))
 
 	// Graceful stop on SIGTERM and SIGINT.
 	s := make(chan os.Signal, 64)
 	signal.Notify(s, syscall.SIGTERM, syscall.SIGINT)
 
-	// TODO Make it work with multiple repositories
-	// Subscribe to the message queues.
-	queues := make([]*Queue, 0, len(conf.Repositories))
-	for _, repo := range conf.GetRepositories() {
-		qconf := &NSQConfig{Topic: repo.Topic, Channel: conf.NSQ.Channel, Lookupd: conf.NSQ.Lookupd}
-		queue, err := NewQueue(qconf, &NSQHandler{Config: conf, Repository: repo})
+	// Subscribe to the message queues for each repository.
+	queues := make([]*Queue, 0, len(config.Repositories))
+	for _, repo := range config.GetRepositories() {
+		qconf := &NSQConfig{
+			Topic:   repo.Topic,
+			Channel: config.NSQ.Channel,
+			Lookupd: config.NSQ.Lookupd,
+		}
+		handler := &NSQHandler{
+			Callback: func(event string, payload json.RawMessage) error {
+				return handleGithubEvent(config, repo, event, payload)
+			},
+		}
+		queue, err := NewQueue(qconf, handler)
 		if err != nil {
 			log.Fatal(err)
 		}
 		queues = append(queues, queue)
 	}
 
+	// Start one goroutine per queue and monitor the StopChan event.
+	wg := sync.WaitGroup{}
+	for _, q := range queues {
+		go func() {
+			wg.Add(1)
+			<-q.Consumer.StopChan
+			log.Debug("Queue stop channel signaled")
+			wg.Done()
+		}()
+	}
+
+	// Multiplex all queues exit into a single channel we can select on.
+	stopChan := make(chan struct{})
+	go func() {
+		wg.Wait()
+		stopChan <- struct{}{}
+	}()
+
 	for {
 		select {
-		case <-queues[0].Consumer.StopChan:
-			log.Debug("Queue stop channel signaled")
+		case <-stopChan:
+			log.Debug("All queues exited")
 			return
 		case sig := <-s:
 			log.WithField("signal", sig).Debug("received signal")
-			queues[0].Consumer.Stop()
+			for _, q := range queues {
+				q.Consumer.Stop()
+			}
 		}
 	}
 }

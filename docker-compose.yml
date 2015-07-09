@@ -22,4 +22,4 @@ ghollector:
         - elasticsearch
     volumes:
         - ./volumes/ghollector/:/config/
-    command: --config /config/config.toml --debug sync
+    command: --config /config/config.toml --debug

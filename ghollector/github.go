@@ -2,10 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"net/http"
+	"strconv"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/bitly/go-nsq"
+	"github.com/google/go-github/github"
 	"github.com/mattbaird/elastigo/core"
+	"golang.org/x/oauth2"
 )
 
 var (
@@ -46,18 +49,18 @@ func isValidEventType(event string) bool {
 	return GithubEventTypes[event]
 }
 
-func onMessage(c *Config, repo *Repository, m *nsq.Message) error {
-	// Deserialize body as a partialMessage.
-	var p partialMessage
-	if err := json.Unmarshal(m.Body, &p); err != nil {
-		log.Error(err)
-		return err
+func newGithubClient(config *Config) *github.Client {
+	var tc *http.Client
+	if config.GithubApiToken != "" {
+		ts := oauth2.StaticTokenSource(&oauth2.Token{
+			AccessToken: config.GithubApiToken,
+		})
+		tc = oauth2.NewClient(oauth2.NoContext, ts)
 	}
-
-	return HandleMessage(c, repo, p.GithubEvent, m.Body)
+	return github.NewClient(tc)
 }
 
-func HandleMessage(c *Config, repo *Repository, event string, payload json.RawMessage) error {
+func handleGithubEvent(c *Config, repo *Repository, event string, payload json.RawMessage) error {
 	// Check if we are subscribed to this particular event type.
 	if !repo.IsSubscribed(event) {
 		log.Debugf("Ignoring event %q for repository %s", event, repo.PrettyName())
@@ -78,4 +81,56 @@ func HandleMessage(c *Config, repo *Repository, event string, payload json.RawMe
 		return err
 	}
 	return nil
+}
+
+// githubPagedIndexer abstracts functions that list Github objects in a paged
+// manner such as issues and pull requests.
+type githubPagedIndexer func(page int) ([]githubIndexedItem, *github.Response, error)
+
+type githubIndexedItem interface {
+	Id() string
+}
+
+type githubPR github.PullRequest
+
+func (g githubPR) Id() string {
+	return strconv.Itoa(*g.Number)
+}
+
+type githubIssue github.Issue
+
+func (g githubIssue) Id() string {
+	return strconv.Itoa(*g.Number)
+}
+
+func listIssues(cli *github.Client, repo *Repository, page int) ([]githubIndexedItem, *github.Response, error) {
+	iss, resp, err := cli.Issues.ListByRepo(repo.User, repo.Repo, &github.IssueListByRepoOptions{
+		State: "all",
+		ListOptions: github.ListOptions{
+			Page:    page,
+			PerPage: 100,
+		},
+	})
+
+	out := make([]githubIndexedItem, 0, len(iss))
+	for _, i := range iss {
+		out = append(out, githubIssue(i))
+	}
+	return out, resp, err
+}
+
+func listPullRequests(cli *github.Client, repo *Repository, page int) ([]githubIndexedItem, *github.Response, error) {
+	prs, resp, err := cli.PullRequests.List(repo.User, repo.Repo, &github.PullRequestListOptions{
+		State: "all",
+		ListOptions: github.ListOptions{
+			Page:    page,
+			PerPage: 100,
+		},
+	})
+
+	out := make([]githubIndexedItem, 0, len(prs))
+	for _, p := range prs {
+		out = append(out, githubPR(p))
+	}
+	return out, resp, err
 }

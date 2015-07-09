@@ -7,6 +7,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/bitly/go-simplejson"
+	"github.com/mattbaird/elastigo/api"
 )
 
 const (
@@ -133,6 +134,9 @@ func ParseConfig(filename string) (*Config, error) {
 	if err := verifyConfig(&config); err != nil {
 		return nil, err
 	}
+
+	// Configure the Elastic Search endpoint for everyone.
+	api.Domain = config.ElasticSearch
 	return &config, nil
 }
 
