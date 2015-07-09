@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -83,26 +84,47 @@ func (r RepositoryConfig) EventSetName() string {
 
 // Config is the global configuration for the tool.
 type Config struct {
-	NSQ          NSQConfig
-	Repositories map[string]RepositoryConfig
-	EventSet     map[string]EventSet `toml:"event_set"`
-	Masks        map[string]Mask
+	ElasticSearch  string
+	GithubApiToken string `toml:"github_api_token"`
+	NSQ            NSQConfig
+	Repositories   map[string]RepositoryConfig
+	EventSet       map[string]EventSet `toml:"event_set"`
+	Masks          map[string]Mask
 }
 
-// GetRepositoryEventSet returns the EventSet for the requested repository.
-func (c *Config) GetRepositoryEventSet(repo string) (EventSet, error) {
-	if r, ok := c.Repositories[repo]; ok {
-		eventSetName := r.EventSetName()
-		if e, ok := c.EventSet[eventSetName]; ok {
-			return e, nil
+// GetRepositories returns the list of all known repositories. It assumes a
+// valid configuration and exits if it fails to build the result.
+func (c *Config) GetRepositories() []*Repository {
+	repos := make([]*Repository, 0, len(c.Repositories))
+	for givenName, _ := range c.Repositories {
+		r, err := c.GetRepository(givenName)
+		if err != nil {
+			log.Fatalf("corrupted configuration: %v", err)
 		}
-		return nil, fmt.Errorf("unknown event set %q for repository %q", eventSetName, repo)
+		repos = append(repos, r)
 	}
-	return nil, fmt.Errorf("unknown repository %q", repo)
+	return repos
 }
 
-//---------------------------------------------------------------------------//
+// GetRepository returns the Repository associated with the provided givenName.
+func (c *Config) GetRepository(givenName string) (*Repository, error) {
+	repoConfig, ok := c.Repositories[givenName]
+	if !ok {
+		return nil, fmt.Errorf("unknown repository %q", givenName)
+	}
+	eventSet, err := c.getRepositoryEventSet(&repoConfig)
+	if err != nil {
+		return nil, err
+	}
+	return &Repository{
+		GivenName:        givenName,
+		EventSet:         eventSet,
+		RepositoryConfig: &repoConfig,
+	}, nil
+}
 
+// ParseConfig returns a Config object from the requested filename and any
+// error encountered during load.
 func ParseConfig(filename string) (*Config, error) {
 	var config Config
 	if _, err := toml.DecodeFile(filename, &config); err != nil {
@@ -112,6 +134,25 @@ func ParseConfig(filename string) (*Config, error) {
 		return nil, err
 	}
 	return &config, nil
+}
+
+// ParseConfigOrDie returns a Config object from the requested filename and
+// exits in case of error.
+func ParseConfigOrDie(filename string) *Config {
+	if c, err := ParseConfig(filename); err == nil {
+		return c
+	} else {
+		log.Fatalf("failed to load configuration file %q: %v", filename, err)
+	}
+	return nil
+}
+
+func (c *Config) getRepositoryEventSet(r *RepositoryConfig) (EventSet, error) {
+	eventSetName := r.EventSetName()
+	if e, ok := c.EventSet[eventSetName]; ok {
+		return e, nil
+	}
+	return nil, fmt.Errorf("unknown event set %q for repository %s:%s", eventSetName, r.User, r.Repo)
 }
 
 func verifyConfig(config *Config) error {

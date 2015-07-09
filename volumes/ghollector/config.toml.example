@@ -1,4 +1,7 @@
-# NSQ global nfiguration
+elasticsearch = "elasticsearch"
+github_api_token = ""
+
+# NSQ global configuration
 #   - channel: identifier of the application
 #   - lookupd: location of the lookup daemon (format: `address:port`)
 
@@ -69,18 +72,77 @@ full = [
 
 [masks]
 
-pull_request = [
-    # Event
+commit_comment = [
     "action",
-    "number",
+    "sender.login",
+
+    # Comment
+    "comment.body",
+    "comment.commit_id"
+]
+
+fork = [
+    "sender.login",
+    "repository.forks"
+]
+
+issue_comment = [
+    "action",
+    "sender.login",
+
+    # Comment
+    "comment.body",
+
+    # Issue
+    "issue.labels",
+    "issue.number"
+]
+
+issues = [
+    "action",
+    "sender.login",
 
     # Content
+    "issue.assignee",
+    "issue.body",
+    "issue.labels",
+    "issue.locked",
+    "issue.milestone",
+    "issue.number",
+    "issue.state",
+
+    # Timestamps information
+    "issue.created_at",
+    "issue.updated_at",
+    "issue.closed_at",
+
+    # Statistics
+    "issue.comments"
+]
+
+pull_request_review_comment = [
+    "action",
+    "sender.login",
+
+    # Comment
+    "comment.body",
+
+    # Pull request
+    "pull_request.labels",
+    "pull_request.number"
+]
+
+pull_request = [
+    "action",
+    "sender.login",
+
+    # Content
+    "pull_request.body",
+    "pull_request.labels",
+    "pull_request.locked",
     "pull_request.number",
     "pull_request.state",
     "pull_request.title",
-    "pull_request.body",
-    "pull_request.user.login",
-    "pull_request.locked",
 
     # Timestamps information
     "pull_request.created_at",
@@ -93,10 +155,15 @@ pull_request = [
     "pull_request.mergeable",
     "pull_request.merge_by.login",
 
-    #Statistics
+    # Statistics
     "pull_request.comments",
     "pull_request.commits",
     "pull_request.additions",
     "pull_request.deletions",
     "pull_request.changed_files"
+]
+
+watch = [
+    "sender.login",
+    "repository.stargazers_count"
 ]

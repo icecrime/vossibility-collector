@@ -1,5 +1,6 @@
 # Project specific files
 ghollector/config.toml
+volumes/elasticsearch/
 volumes/ghollector/config.toml
 
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
