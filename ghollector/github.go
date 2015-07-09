@@ -76,8 +76,9 @@ func handleGithubEvent(c *Config, repo *Repository, event string, payload json.R
 		return err
 	}
 
-	// Store the event in Elastic Search.
-	if _, err := core.Index(repo.EventsIndex(), "event", "", nil, data); err != nil {
+	// Store the event in Elastic Search: index is determined by the repository
+	// and type by the event type.
+	if _, err := core.Index(repo.EventsIndex(), event, "", nil, data); err != nil {
 		return err
 	}
 	return nil

@@ -30,18 +30,18 @@ func doSyncCommand(c *cli.Context) {
 }
 
 func syncRepositoryIssues(cli *github.Client, repo *Repository) error {
-	return syncRepositoryItems(repo, func(page int) ([]githubIndexedItem, *github.Response, error) {
+	return syncRepositoryItems(repo, "issue", func(page int) ([]githubIndexedItem, *github.Response, error) {
 		return listIssues(cli, repo, page)
 	})
 }
 
 func syncRepositoryPullRequests(cli *github.Client, repo *Repository) error {
-	return syncRepositoryItems(repo, func(page int) ([]githubIndexedItem, *github.Response, error) {
+	return syncRepositoryItems(repo, "pull", func(page int) ([]githubIndexedItem, *github.Response, error) {
 		return listPullRequests(cli, repo, page)
 	})
 }
 
-func syncRepositoryItems(repo *Repository, indexer githubPagedIndexer) error {
+func syncRepositoryItems(repo *Repository, itemType string, indexer githubPagedIndexer) error {
 	count := 0
 	final := math.MaxInt32
 	for page := 1; page < final; page++ {
@@ -53,9 +53,9 @@ func syncRepositoryItems(repo *Repository, indexer githubPagedIndexer) error {
 		final = resp.LastPage
 		count += len(prs)
 
-		log.Debugf("retrieved %d pull requests for %s (page %d)", count, repo.PrettyName(), page)
+		log.Debugf("retrieved %d %ss for %s (page %d)", count, itemType, repo.PrettyName(), page)
 		for _, pr := range prs {
-			if _, err := core.Index(repo.LatestIndex(), "issue", pr.Id(), nil, pr); err != nil {
+			if _, err := core.Index(repo.SnapshotIndex(), itemType, pr.Id(), nil, pr); err != nil {
 				log.Errorf("store pull request %s data: %v", pr.Id(), err)
 			}
 		}
