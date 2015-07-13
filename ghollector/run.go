@@ -33,8 +33,8 @@ func doRunCommand(c *cli.Context) {
 			Lookupd: config.NSQ.Lookupd,
 		}
 		handler := &NSQHandler{
-			Callback: func(event string, payload json.RawMessage) error {
-				return handleGithubEvent(config, repo, event, payload)
+			Callback: func(event, delivery string, payload json.RawMessage) error {
+				return handleGithubEvent(config, repo, event, delivery, payload)
 			},
 		}
 		queue, err := NewQueue(qconf, handler)
@@ -47,8 +47,8 @@ func doRunCommand(c *cli.Context) {
 	// Start one goroutine per queue and monitor the StopChan event.
 	wg := sync.WaitGroup{}
 	for _, q := range queues {
+		wg.Add(1)
 		go func() {
-			wg.Add(1)
 			<-q.Consumer.StopChan
 			log.Debug("Queue stop channel signaled")
 			wg.Done()

@@ -1,5 +1,6 @@
 # Project specific files
 ghollector/config.toml
+ghollector/ghollector
 volumes/elasticsearch/
 volumes/ghollector/config.toml
 

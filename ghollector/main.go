@@ -25,6 +25,7 @@ func main() {
 
 	app.Action = runCommand.Action
 	app.Commands = []cli.Command{
+		initCommand,
 		runCommand,
 		syncCommand,
 	}

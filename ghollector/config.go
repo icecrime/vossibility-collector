@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	log "github.com/Sirupsen/logrus"
 	"github.com/bitly/go-simplejson"
 	"github.com/mattbaird/elastigo/api"
+	"github.com/mattbaird/elastigo/core"
 )
 
 const (
@@ -135,8 +136,9 @@ func ParseConfig(filename string) (*Config, error) {
 		return nil, err
 	}
 
-	// Configure the Elastic Search endpoint for everyone.
+	// Configure the Elastic Search client library once and for all.
 	api.Domain = config.ElasticSearch
+	core.VerboseLogging = log.GetLevel() == log.DebugLevel
 	return &config, nil
 }
 

@@ -25,7 +25,7 @@ func NewQueue(config *NSQConfig, handler nsq.Handler) (*Queue, error) {
 	return &Queue{Consumer: consumer}, nil
 }
 
-type NSQCallback func(event string, payload json.RawMessage) error
+type NSQCallback func(event, delivery string, payload json.RawMessage) error
 
 type NSQHandler struct {
 	Callback NSQCallback
@@ -37,5 +37,5 @@ func (n *NSQHandler) HandleMessage(m *nsq.Message) error {
 		log.Error(err)
 		return nil // No need to retry
 	}
-	return n.Callback(p.GithubEvent, m.Body)
+	return n.Callback(p.GithubEvent, p.GithubDelivery, m.Body)
 }

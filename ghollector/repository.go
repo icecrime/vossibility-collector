@@ -18,22 +18,24 @@ type Repository struct {
 	EventSet  EventSet
 }
 
-func (r *Repository) indexPrefix() string {
-	return fmt.Sprintf("%s_%s-%s", r.GivenName, r.User, r.Repo)
+// IndexPrefix returns the string that prefixes all Elastic Search indices for
+// this repository data.
+func (r *Repository) IndexPrefix() string {
+	return r.GivenName + "-"
 }
 
 // EventsIndex returns the current Elastic Search index appropriate to store
 // this repository's events. This value changes over time.
 func (r *Repository) EventsIndex() string {
-	period := time.Now().Format("2006-01")
-	return fmt.Sprintf("%s_%s", r.indexPrefix(), period)
+	period := time.Now().Format("2006.01")
+	return fmt.Sprintf("%s%s", r.IndexPrefix(), period)
 }
 
 // SnapshotIndex returns the current Elastic Search index appropriate to store
 // this repository's snapshot data (such as the latest state of each pull
 // request and issue).
 func (r *Repository) SnapshotIndex() string {
-	return fmt.Sprintf("%s_snapshot", r.indexPrefix())
+	return fmt.Sprintf("%ssnapshot", r.IndexPrefix())
 }
 
 // IsSubscribed returns whether we should subscribe for a particular Github
