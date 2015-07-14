@@ -138,7 +138,8 @@ func ParseConfig(filename string) (*Config, error) {
 
 	// Configure the Elastic Search client library once and for all.
 	api.Domain = config.ElasticSearch
-	core.VerboseLogging = log.GetLevel() == log.DebugLevel
+	core.VerboseLogging = false
+	//core.VerboseLogging = log.GetLevel() == log.DebugLevel
 	return &config, nil
 }
 
