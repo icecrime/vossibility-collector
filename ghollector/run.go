@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"os"
 	"os/signal"
 	"sync"
@@ -32,12 +31,10 @@ func doRunCommand(c *cli.Context) {
 			Channel: config.NSQ.Channel,
 			Lookupd: config.NSQ.Lookupd,
 		}
-		handler := &NSQHandler{
-			Callback: func(event, delivery string, payload json.RawMessage) error {
-				return handleGithubEvent(config, repo, event, delivery, payload)
-			},
-		}
-		queue, err := NewQueue(qconf, handler)
+		queue, err := NewQueue(qconf, &MessageHandler{
+			Config: config,
+			Repo:   repo,
+		})
 		if err != nil {
 			log.Fatal(err)
 		}

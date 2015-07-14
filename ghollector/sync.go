@@ -16,7 +16,7 @@ var syncCommand = cli.Command{
 func doSyncCommand(c *cli.Context) {
 	config := ParseConfigOrDie(c.GlobalString("config"))
 
-	client := newGithubClient(config)
+	client := NewClient(config)
 	for _, r := range config.GetRepositories() {
 		if err := syncRepositoryIssues(client, r); err != nil {
 			log.Errorf("error syncing repository %s issues: %v", r.PrettyName(), err)
@@ -49,12 +49,15 @@ func syncRepositoryItems(repo *Repository, indexer githubPagedIndexer) error {
 
 		count += len(items)
 		log.Infof("retrieved %d items for %s (page %d)", count, repo.PrettyName(), page)
-		for _, i := range items {
-			log.Debugf("store %s #%s", i.Type(), i.Id())
-			if _, err := core.Index(repo.SnapshotIndex(), i.Type(), i.Id(), nil, i); err != nil {
-				log.Errorf("store pull request %s data: %v", i.Id(), err)
+
+		go func(items []githubIndexedItem) {
+			for _, i := range items {
+				log.Debugf("store %s #%s", i.Type(), i.Id())
+				if _, err := core.Index(repo.SnapshotIndex(), i.Type(), i.Id(), nil, i); err != nil {
+					log.Errorf("store pull request %s data: %v", i.Id(), err)
+				}
 			}
-		}
+		}(items)
 
 		page = resp.NextPage
 	}

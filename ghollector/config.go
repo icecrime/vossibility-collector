@@ -183,7 +183,7 @@ func verifyConfig(config *Config) error {
 	}
 	// Validate masks
 	for key, _ := range config.Masks {
-		if !isValidEventType(key) {
+		if !IsValidEventType(key) {
 			return fmt.Errorf("invalid event type %q for mask definition", key)
 		}
 	}
