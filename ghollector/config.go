@@ -21,13 +21,13 @@ const (
 	DefaultEventSet = "default"
 )
 
-// Mask is the list of object attributes to persist.
-type Mask []string
+// Transformation is the transformation matrix for a given payload.
+type Transformation map[string]string
 
 // Apply takes a serialized JSON payload and returns a JSON payload where only
-// the masked fields are preserved, or the original payload if the mask is
-// empty.
-func (m Mask) Apply(payload []byte) ([]byte, error) {
+// the masked fields are preserved, or the original payload if the
+// transforation is empty.
+func (m Transformation) Apply(payload []byte) ([]byte, error) {
 	if len(m) == 0 {
 		return payload, nil
 	}
@@ -86,12 +86,12 @@ func (r RepositoryConfig) EventSetName() string {
 
 // Config is the global configuration for the tool.
 type Config struct {
-	ElasticSearch  string
-	GithubApiToken string `toml:"github_api_token"`
-	NSQ            NSQConfig
-	Repositories   map[string]RepositoryConfig
-	EventSet       map[string]EventSet `toml:"event_set"`
-	Masks          map[string]Mask
+	ElasticSearch   string
+	GithubApiToken  string `toml:"github_api_token"`
+	NSQ             NSQConfig
+	Repositories    map[string]RepositoryConfig
+	EventSet        map[string]EventSet `toml:"event_set"`
+	Transformations map[string]Transformation
 }
 
 // GetRepositories returns the list of all known repositories. It assumes a
@@ -167,7 +167,7 @@ func verifyConfig(config *Config) error {
 	//
 	//   1. Each repository should reference a valid subscription event set
 	//   2. Each repository should reference a unique NSQ topic
-	//	 3. Each mask must be a valid Github event identifier
+	//	 3. Each transformation must be a valid Github event identifier
 	topics := make(map[string]struct{})
 	for repo, conf := range config.Repositories {
 		// Validate event set
@@ -182,8 +182,8 @@ func verifyConfig(config *Config) error {
 		}
 		topics[conf.Topic] = struct{}{}
 	}
-	// Validate masks
-	for key, _ := range config.Masks {
+	// Validate transformations
+	for key, _ := range config.Transformations {
 		if !IsValidEventType(key) {
 			return fmt.Errorf("invalid event type %q for mask definition", key)
 		}

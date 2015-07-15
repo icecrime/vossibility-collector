@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	log "github.com/Sirupsen/logrus"
@@ -32,13 +33,18 @@ func (m *MessageHandler) handleEvent(event, delivery string, payload json.RawMes
 	}
 	log.Infof("Receive event %q for repository %q", event, m.Repo.PrettyName())
 
+	fmt.Printf("%s\n", string(payload))
+
 	// We rely on the fact that a defaut constructed Mask is a pass-through, so
 	// we don't need to test if it's even defined.
-	data, err := m.Config.Masks[event].Apply(payload)
+	data, err := m.Config.Transformations[event].Apply(payload)
 	if err != nil {
 		log.Errorf("Failed to apply mask for event %q: %v", event, err)
 		return err
 	}
+
+	// TODO
+	// If issue_comment with pull_request attribute, it's a pull_request_comment
 
 	// Store the event in Elastic Search: index is determined by the repository
 	// and type by the event type.

@@ -70,6 +70,10 @@ func doSyncCommand(c *cli.Context) {
 }
 
 func indexingProc(cli *github.Client, repo *Repository, wg *sync.WaitGroup, toIndex <-chan githubIndexedItem) {
+	// TODO
+	// Go through the same code as live updates
+	// Mask the result
+	// If labels missing, query the labels endpoint
 	for i := range toIndex {
 		log.Debugf("store %s #%s", i.Type(), i.Id())
 		if _, err := core.Index(repo.SnapshotIndex(), i.Type(), i.Id(), nil, i); err != nil {
