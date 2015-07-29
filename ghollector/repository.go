@@ -24,11 +24,18 @@ func (r *Repository) IndexPrefix() string {
 	return r.GivenName + "-"
 }
 
-// EventsIndex returns the current Elastic Search index appropriate to store
-// this repository's events. This value changes over time.
-func (r *Repository) EventsIndex() string {
-	period := time.Now().Format("2006.01")
-	return fmt.Sprintf("%s%s", r.IndexPrefix(), period)
+// LiveIndex returns the current Elastic Search index appropriate to store this
+// repository's events. This value changes over time.
+func (r *Repository) LiveIndex() string {
+	period := time.Now().Format("2006.01.02-15")
+	return fmt.Sprintf("%slive-%s", r.IndexPrefix(), period)
+}
+
+// CurrentStateIndex returns the current Elastic Search index appropriate to
+// store this repository's items current state. This value changes over time.
+func (r *Repository) CurrentStateIndex() string {
+	period := time.Now().Format("2006.01.02-15")
+	return fmt.Sprintf("%sstate-%s", r.IndexPrefix(), period)
 }
 
 // SnapshotIndex returns the current Elastic Search index appropriate to store

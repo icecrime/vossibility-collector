@@ -1,12 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/google/go-github/github"
-	"github.com/mattbaird/elastigo/core"
 )
 
 var syncCommand = cli.Command{
@@ -34,6 +34,10 @@ const (
 func doSyncCommand(c *cli.Context) {
 	config := ParseConfigOrDie(c.GlobalString("config"))
 	client := NewClient(config)
+	blobStore := &blobStore{
+		Client: client,
+		Config: config,
+	}
 
 	toFetch := make(chan github.Issue, NumFetchProcs)
 	toIndex := make(chan githubIndexedItem, NumIndexProcs)
@@ -42,7 +46,7 @@ func doSyncCommand(c *cli.Context) {
 		wgIndex := sync.WaitGroup{}
 		for i := 0; i != NumIndexProcs; i++ {
 			wgIndex.Add(1)
-			go indexingProc(client, r, &wgIndex, toIndex)
+			go indexingProc(blobStore, r, &wgIndex, toIndex)
 		}
 
 		wgFetch := sync.WaitGroup{}
@@ -60,27 +64,35 @@ func doSyncCommand(c *cli.Context) {
 
 		// When the fetchingProc is done, all data to index has been queued.
 		wgFetch.Wait()
-		log.Warn("Done fetching Github API data")
+		log.Warn("done fetching Github API data")
 		close(toIndex)
 
 		// Wait until indexing completes.
 		wgIndex.Wait()
-		log.Warn("Done indexing documents in Elastic Search")
+		log.Warn("done indexing documents in Elastic Search")
 	}
 }
 
-func indexingProc(cli *github.Client, repo *Repository, wg *sync.WaitGroup, toIndex <-chan githubIndexedItem) {
-	// TODO
-	// Input is github type
-	// Serialize
-	// Becomes []byte
-	// Same code path than live
-	//   - Go through transfo
-	//   - Store
+func indexingProc(blobStore *blobStore, repo *Repository, wg *sync.WaitGroup, toIndex <-chan githubIndexedItem) {
 	for i := range toIndex {
-		log.Debugf("store %s #%s", i.Type(), i.Id())
-		if _, err := core.Index(repo.SnapshotIndex(), i.Type(), i.Id(), nil, i); err != nil {
-			log.Errorf("store pull request %s data: %v", i.Id(), err)
+		// We have to serialize back to JSON in order to transform the payload
+		// as we wish. This could be optimized out if we were to read the raw
+		// Github data rather than rely on the typed go-github package.
+		payload, err := json.Marshal(i)
+		if err != nil {
+			log.Errorf("error marshaling githubIndexedItem %q (%s): %v", i.Id(), i.Type(), err)
+			continue
+		}
+		// We create a blob from the payload, which essentially deserialized
+		// the object back from JSON...
+		b, err := NewBlobFromPayload(i.Type(), payload)
+		if err != nil {
+			log.Errorf("creating blob from payload %q (%s): %v", i.Id(), i.Type(), err)
+			continue
+		}
+		// Persist the object in Elastic Search.
+		if err := blobStore.Index(StoreSnapshot, repo, b, ""); err != nil {
+			log.Error(err)
 		}
 	}
 	wg.Done()

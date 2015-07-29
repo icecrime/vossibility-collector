@@ -97,9 +97,14 @@ func (t Transformation) ApplyBlob(b *Blob) (*Blob, error) {
 		return nil, err
 	}
 
+	// Create the result blob, but inherit from the parent's metadata.
+	res := NewBlob(b.Event)
+	for k, v := range b.Metadata {
+		res.Metadata[k] = v
+	}
+
 	// For each destination field defined in the transformation, apply the
 	// associated template and store it in the output.
-	res := NewBlob(b.Event)
 	for key, tmpl := range t.templates {
 		// A nil template is just a pass-through.
 		if tmpl == nil {

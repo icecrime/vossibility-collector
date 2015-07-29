@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/bitly/go-simplejson"
-	"github.com/google/go-github/github"
 )
 
 type Blob struct {
@@ -36,6 +35,18 @@ func (b *Blob) Encode() ([]byte, error) {
 	return b.Data.Encode()
 }
 
+func (b *Blob) HasAttribute(attr string) bool {
+	_, ok := b.Data.CheckGet(attr)
+	return ok
+}
+
+func (b *Blob) Id() string {
+	if t, ok := b.Metadata["_id"]; ok {
+		return fmt.Sprintf("%v", t)
+	}
+	return ""
+}
+
 func (b *Blob) Number() int {
 	return b.Data.Get("number").MustInt()
 }
@@ -54,15 +65,4 @@ func (b *Blob) Type() string {
 		return fmt.Sprintf("%v", t)
 	}
 	return b.Event
-}
-
-func PrepareForStorage(c *github.Client, repo *Repository, b *Blob, t *Transformation) (*Blob, error) {
-	if b.Event == EvtPullRequest {
-		l, _, err := c.Issues.ListLabelsByIssue(repo.User, repo.Repo, b.Number(), &github.ListOptions{})
-		if err != nil {
-			return nil, err
-		}
-		b.Push("labels", l)
-	}
-	return t.ApplyBlob(b)
 }

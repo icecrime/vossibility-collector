@@ -58,11 +58,7 @@ func createQueues(client *github.Client, config *Config) []*Queue {
 			Channel: config.NSQ.Channel,
 			Lookupd: config.NSQ.Lookupd,
 		}
-		queue, err := NewQueue(qconf, &MessageHandler{
-			Client: client,
-			Config: config,
-			Repo:   repo,
-		})
+		queue, err := NewQueue(qconf, NewMessageHandler(client, config, repo))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -99,5 +95,7 @@ func resetNextTickTime(p PeriodicSync) time.Duration {
 }
 
 func runPeriodicSync(client *github.Client, config *Config) error {
+	// TODO Sync all opened issues into a newly created index.
+	// Need to wrap sync.go in a SyncJob class with configurable options
 	return nil
 }

@@ -15,6 +15,8 @@ var initCommand = cli.Command{
 	Action: doInitCommand,
 }
 
+// TODO This depends on the mapping defined in the config, and should be store
+// in there.
 const IndexTemplate string = `{
 	"template": "%s*",
 	"order": 1,
@@ -26,7 +28,7 @@ const IndexTemplate string = `{
 			},
 			"dynamic_templates" : [{
 				"label_name": {
-					"path_match": "labels.name",
+					"path_match": "labels",
 					"match_mapping_type": "string",
 					"mapping": {
 						"type": "string",
@@ -36,7 +38,7 @@ const IndexTemplate string = `{
 			},
 			{
 				"login": {
-					"match": "login",
+					"match": "sender",
 					"match_mapping_type": "string",
 					"mapping": {
 						"type": "string",
@@ -46,7 +48,7 @@ const IndexTemplate string = `{
 			},
 			{
 				"url": {
-					"match": "*_url",
+					"match": "*url",
 					"match_mapping_type": "string",
 					"mapping": {
 						"type": "string",
