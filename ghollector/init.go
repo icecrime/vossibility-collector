@@ -68,7 +68,7 @@ func enableTimestamping(index string) error {
 
 func doInitCommand(c *cli.Context) {
 	config := ParseConfigOrDie(c.GlobalString("config"))
-	for _, r := range config.GetRepositories() {
+	for _, r := range config.Repositories {
 		if _, err := api.DoCommand("PUT", "/_template/events", nil, fmt.Sprintf(IndexTemplate, r.IndexPrefix())); err != nil {
 			log.Fatal(err)
 		}

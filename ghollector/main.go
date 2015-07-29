@@ -5,6 +5,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
+	"github.com/mattbaird/elastigo/core"
 )
 
 func main() {
@@ -21,6 +22,10 @@ func main() {
 			Name:  "debug",
 			Usage: "enable debug output",
 		},
+		cli.BoolFlag{
+			Name:  "debug-es",
+			Usage: "enable debug output for elasticsearch queries",
+		},
 	}
 
 	app.Action = runCommand.Action
@@ -34,6 +39,7 @@ func main() {
 		if c.GlobalBool("debug") {
 			log.SetLevel(log.DebugLevel)
 		}
+		core.VerboseLogging = c.GlobalBool("debug-es")
 		return nil
 	}
 

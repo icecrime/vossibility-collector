@@ -1,67 +1,70 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
-	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/bitly/go-simplejson"
 )
 
-func TestApplyMask(t *testing.T) {
+func TestApplyTransformation(t *testing.T) {
 	s := "./testdata/pull_request_event.json"
 	f, err := ioutil.ReadFile(s)
 	if err != nil {
 		t.Fatalf("failed to open file %q", s)
 	}
 
-	m := Mask{
-		"action",
-		"number",
-		"pull_request.number",
-		"pull_request.state",
-		"pull_request.title",
-		"pull_request.body",
-		"pull_request.user.login",
-		"pull_request.locked",
-		"pull_request.created_at",
-		"pull_request.updated_at",
-		"pull_request.closed_at",
-		"pull_request.merged_at",
-		"pull_request.merged",
-		"pull_request.mergeable",
-		"pull_request.merge_by.login",
-		"pull_request.comments",
-		"pull_request.commits",
-		"pull_request.additions",
-		"pull_request.deletions",
-		"pull_request.changed_files",
+	m := map[string]string{
+		"action":        "",
+		"additions":     "{{ .pull_request.additions }}",
+		"body":          "{{ .pull_request.body }}",
+		"changed_files": "{{ .pull_request.changed_files }}",
+		"closed_at":     "{{ .pull_request.closed_at }}",
+		"comments":      "{{ .pull_request.comments }}",
+		"commits":       "{{ .pull_request.commits }}",
+		"created_at":    "{{ .pull_request.created_at }}",
+		"deletions":     "{{ .pull_request.deletions }}",
+		"locked":        "{{ .pull_request.locked }}",
+		"mergeable":     "{{ .pull_request.mergeable }}",
+		"merged":        "{{ .pull_request.merged }}",
+		"merged_at":     "{{ .pull_request.merged_at }}",
+		"merged_by":     "{{ if .pull_request.merged_by }}{{ .pull_request.merged_by.login }}{{ end }}",
+		"number":        "{{ .pull_request.number }}",
+		"state":         "{{ .pull_request.state }}",
+		"title":         "{{ .pull_request.title }}",
+		"updated_at":    "{{ .pull_request.updated_at }}",
+		"user":          "{{ .pull_request.user.login }}",
 	}
-	r, err := m.Apply(f)
+
+	tr, err := FromConfig(m)
 	if err != nil {
-		t.Fatalf("error applying mask: %v", err)
+		t.Fatalf("error creating transformation: %v", err)
+	}
+
+	r, err := tr.Apply(f)
+	if err != nil {
+		t.Fatalf("error applying transformation: %v", err)
 	}
 
 	res, err := simplejson.NewJson(r)
 	if err != nil {
-		t.Fatalf("error unserializing masked result: %v", err)
+		t.Fatalf("error unserializing transformed result: %v", err)
 	}
 
-	input, _ := simplejson.NewJson(f)
-	for _, v := range m {
+	fmt.Printf("%s\n", string(r))
+
+	for k, _ := range m {
 		var (
 			ok  bool
 			tmp *simplejson.Json = res
 		)
-		path := strings.Split(v, ".")
+		path := strings.Split(k, ".")
 		for _, p := range path {
 			if tmp, ok = tmp.CheckGet(p); !ok {
-				t.Fatalf("missing field %q in masked result", v)
+				t.Fatalf("missing field %q in masked result", k)
 			}
-		}
-		if !reflect.DeepEqual(input.GetPath(path...).Interface(), res.GetPath(path...).Interface()) {
-			t.Fatalf("input and result have different value for field %q", path)
 		}
 	}
 }

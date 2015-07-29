@@ -2,13 +2,10 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/BurntSushi/toml"
 	log "github.com/Sirupsen/logrus"
-	"github.com/bitly/go-simplejson"
 	"github.com/mattbaird/elastigo/api"
-	"github.com/mattbaird/elastigo/core"
 )
 
 const (
@@ -20,30 +17,6 @@ const (
 	// every repository explicitely refers to a valid event set.
 	DefaultEventSet = "default"
 )
-
-// Transformation is the transformation matrix for a given payload.
-type Transformation map[string]string
-
-// Apply takes a serialized JSON payload and returns a JSON payload where only
-// the masked fields are preserved, or the original payload if the
-// transforation is empty.
-func (m Transformation) Apply(payload []byte) ([]byte, error) {
-	if len(m) == 0 {
-		return payload, nil
-	}
-
-	sj, err := simplejson.NewJson(payload)
-	if err != nil {
-		return nil, err
-	}
-
-	res := simplejson.New()
-	for _, e := range m {
-		path := strings.Split(e, ".")
-		res.SetPath(path, sj.GetPath(path...).Interface())
-	}
-	return res.Encode()
-}
 
 // EventSet is a list of Github event types to subscribe to.
 type EventSet []string
@@ -84,22 +57,64 @@ func (r RepositoryConfig) EventSetName() string {
 	return r.events
 }
 
-// Config is the global configuration for the tool.
-type Config struct {
+type serializedConfig struct {
 	ElasticSearch   string
 	GithubApiToken  string `toml:"github_api_token"`
+	PeriodicSync    string `toml:"sync_periodicity"`
 	NSQ             NSQConfig
 	Repositories    map[string]RepositoryConfig
 	EventSet        map[string]EventSet `toml:"event_set"`
-	Transformations map[string]Transformation
+	Transformations map[string]map[string]string
+}
+
+// Config is the global configuration for the tool.
+type Config struct {
+	ElasticSearch   string
+	GithubApiToken  string
+	PeriodicSync    PeriodicSync
+	NSQ             NSQConfig
+	Repositories    map[string]*Repository
+	EventSet        map[string]EventSet
+	Transformations map[string]*Transformation
+}
+
+func configFromFile(c *serializedConfig) *Config {
+	out := &Config{
+		ElasticSearch:   c.ElasticSearch,
+		GithubApiToken:  c.GithubApiToken,
+		NSQ:             c.NSQ,
+		EventSet:        c.EventSet,
+		Repositories:    make(map[string]*Repository),
+		Transformations: make(map[string]*Transformation),
+	}
+	for name, _ := range c.Repositories {
+		r, err := c.getRepository(name)
+		if err != nil {
+			log.Fatalf("corrupted repository %q in configuration: %v", name, err)
+		}
+		out.Repositories[name] = r
+	}
+	for name, trans := range c.Transformations {
+		t, err := TransformationFromConfig(name, trans)
+		if err != nil {
+			log.Fatalf("corrupted transformation %q in configuration %v", name, err)
+		}
+		out.Transformations[name] = t
+	}
+	p, err := NewPeriodicSync(c.PeriodicSync)
+	if err != nil {
+		log.Fatal(err)
+	}
+	out.PeriodicSync = p
+	return out
 }
 
 // GetRepositories returns the list of all known repositories. It assumes a
 // valid configuration and exits if it fails to build the result.
-func (c *Config) GetRepositories() []*Repository {
+func (c *serializedConfig) getRepositories() []*Repository {
 	repos := make([]*Repository, 0, len(c.Repositories))
 	for givenName, _ := range c.Repositories {
-		r, err := c.GetRepository(givenName)
+		r, err := c.getRepository(givenName)
 		if err != nil {
 			log.Fatalf("corrupted configuration: %v", err)
 		}
@@ -109,7 +124,7 @@ func (c *Config) GetRepositories() []*Repository {
 }
 
 // GetRepository returns the Repository associated with the provided givenName.
-func (c *Config) GetRepository(givenName string) (*Repository, error) {
+func (c *serializedConfig) getRepository(givenName string) (*Repository, error) {
 	repoConfig, ok := c.Repositories[givenName]
 	if !ok {
 		return nil, fmt.Errorf("unknown repository %q", givenName)
@@ -125,36 +140,7 @@ func (c *Config) GetRepository(givenName string) (*Repository, error) {
 	}, nil
 }
 
-// ParseConfig returns a Config object from the requested filename and any
-// error encountered during load.
-func ParseConfig(filename string) (*Config, error) {
-	var config Config
-	if _, err := toml.DecodeFile(filename, &config); err != nil {
-		return nil, err
-	}
-	if err := verifyConfig(&config); err != nil {
-		return nil, err
-	}
-
-	// Configure the Elastic Search client library once and for all.
-	api.Domain = config.ElasticSearch
-	core.VerboseLogging = false
-	//core.VerboseLogging = log.GetLevel() == log.DebugLevel
-	return &config, nil
-}
-
-// ParseConfigOrDie returns a Config object from the requested filename and
-// exits in case of error.
-func ParseConfigOrDie(filename string) *Config {
-	if c, err := ParseConfig(filename); err == nil {
-		return c
-	} else {
-		log.Fatalf("failed to load configuration file %q: %v", filename, err)
-	}
-	return nil
-}
-
-func (c *Config) getRepositoryEventSet(r *RepositoryConfig) (EventSet, error) {
+func (c *serializedConfig) getRepositoryEventSet(r *RepositoryConfig) (EventSet, error) {
 	eventSetName := r.EventSetName()
 	if e, ok := c.EventSet[eventSetName]; ok {
 		return e, nil
@@ -162,17 +148,16 @@ func (c *Config) getRepositoryEventSet(r *RepositoryConfig) (EventSet, error) {
 	return nil, fmt.Errorf("unknown event set %q for repository %s:%s", eventSetName, r.User, r.Repo)
 }
 
-func verifyConfig(config *Config) error {
+func (c *serializedConfig) verify() error {
 	// We enforce the following rules:
-	//
 	//   1. Each repository should reference a valid subscription event set
 	//   2. Each repository should reference a unique NSQ topic
 	//	 3. Each transformation must be a valid Github event identifier
 	topics := make(map[string]struct{})
-	for repo, conf := range config.Repositories {
+	for repo, conf := range c.Repositories {
 		// Validate event set
 		eventSetName := conf.EventSetName()
-		if _, ok := config.EventSet[eventSetName]; !ok {
+		if _, ok := c.EventSet[eventSetName]; !ok {
 			return fmt.Errorf("unknown event set %q for repository %q", eventSetName, repo)
 		}
 
@@ -183,10 +168,37 @@ func verifyConfig(config *Config) error {
 		topics[conf.Topic] = struct{}{}
 	}
 	// Validate transformations
-	for key, _ := range config.Transformations {
+	for key, _ := range c.Transformations {
 		if !IsValidEventType(key) {
-			return fmt.Errorf("invalid event type %q for mask definition", key)
+			return fmt.Errorf("invalid event type %q for transformation definition", key)
 		}
+	}
+	return nil
+}
+
+// ParseConfig returns a Config object from the requested filename and any
+// error encountered during load.
+func ParseConfig(filename string) (*Config, error) {
+	var config serializedConfig
+	if _, err := toml.DecodeFile(filename, &config); err != nil {
+		return nil, err
+	}
+	if err := config.verify(); err != nil {
+		return nil, err
+	}
+
+	// Configure the Elastic Search client library once and for all.
+	api.Domain = config.ElasticSearch
+	return configFromFile(&config), nil
+}
+
+// ParseConfigOrDie returns a Config object from the requested filename and
+// exits in case of error.
+func ParseConfigOrDie(filename string) *Config {
+	if c, err := ParseConfig(filename); err == nil {
+		return c
+	} else {
+		log.Fatalf("failed to load configuration file %q: %v", filename, err)
 	}
 	return nil
 }
