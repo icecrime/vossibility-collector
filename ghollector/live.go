@@ -2,11 +2,16 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/bitly/go-nsq"
 	"github.com/google/go-github/github"
 )
+
+func liveEventType(event string) string {
+	return fmt.Sprintf("%s_event", event)
+}
 
 type MessageHandler struct {
 	Repo  *Repository
@@ -41,7 +46,7 @@ func (m *MessageHandler) handleEvent(event, delivery string, payload json.RawMes
 	log.Infof("receive event %q for repository %q", event, m.Repo.PrettyName())
 
 	// Create the blob object and complete any data that needs to be.
-	b, err := NewBlobFromPayload(event, payload)
+	b, err := NewBlobFromPayload(liveEventType(event), payload)
 	if err = m.Store.PrepareForStorage(m.Repo, b); err != nil {
 		log.Errorf("preparing event %q for storage: %v", event, err)
 		return err

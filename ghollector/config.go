@@ -75,7 +75,7 @@ type Config struct {
 	NSQ             NSQConfig
 	Repositories    map[string]*Repository
 	EventSet        map[string]EventSet
-	Transformations map[string]*Transformation
+	Transformations Transformations
 }
 
 func configFromFile(c *serializedConfig) *Config {
@@ -94,13 +94,13 @@ func configFromFile(c *serializedConfig) *Config {
 		}
 		out.Repositories[name] = r
 	}
-	for name, trans := range c.Transformations {
-		t, err := TransformationFromConfig(name, trans)
-		if err != nil {
-			log.Fatalf("corrupted transformation %q in configuration %v", name, err)
-		}
-		out.Transformations[name] = t
+
+	t, err := TransformationsFromConfig(c.Transformations)
+	if err != nil {
+		log.Fatal(err)
 	}
+	out.Transformations = t
+
 	p, err := NewPeriodicSync(c.PeriodicSync)
 	if err != nil {
 		log.Fatal(err)
@@ -166,12 +166,6 @@ func (c *serializedConfig) verify() error {
 			return fmt.Errorf("duplicated topipc name %q for repository %q", conf.Topic, repo)
 		}
 		topics[conf.Topic] = struct{}{}
-	}
-	// Validate transformations
-	for key, _ := range c.Transformations {
-		if !IsValidEventType(key) {
-			return fmt.Errorf("invalid event type %q for transformation definition", key)
-		}
 	}
 	return nil
 }

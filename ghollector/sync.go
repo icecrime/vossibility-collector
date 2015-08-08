@@ -31,6 +31,57 @@ const (
 	PerPage = 100
 )
 
+/*
+type syncCmd struct {
+	blobStore *blobStore
+	toFetch   chan github.Issue
+	toIndex   chan githubIndexedItem
+	wgFetch   sync.WaitGroup
+	wgIndex   sync.WaitGroup
+}
+
+func NewSyncCommand() *syncCommand {
+	return &syncCommand{
+		blobStore: blobStore,
+		toFetch:   make(chan github.Issue, NumFetchProcs),
+		toIndex:   make(chan githubIndexedItem, NumIndexProcs),
+	}
+}
+
+func (s *syncCommand) Run(repos []*Repository) {
+	for _, r := range config.Repositories {
+		for i := 0; i != NumIndexProcs; i++ {
+			s.wgIndex.Add(1)
+			go s.indexingProc(r)
+		}
+
+		for i := 0; i != NumFetchProcs; i++ {
+			s.wgFetch.Add(1)
+			go fetchingProc(r)
+		}
+
+		// TODO c.Int is wrong
+		if err := s.fetchRepositoryItems(c.Int("from")); err != nil {
+			log.Errorf("error syncing repository %s issues: %v", r.PrettyName(), err)
+		}
+
+		// When fetchRepositoryItems is done, all data to fetch has been queued.
+		close(s.toFetch)
+
+		// When the fetchingProc is done, all data to index has been queued.
+		s.wgFetch.Wait()
+		log.Warn("done fetching Github API data")
+		close(s.toIndex)
+
+		// Wait until indexing completes.
+		s.wgIndex.Wait()
+		log.Warn("done indexing documents in Elastic Search")
+	}
+}
+*/
+
+//---------------------------------------------------------------------------//
+
 func doSyncCommand(c *cli.Context) {
 	config := ParseConfigOrDie(c.GlobalString("config"))
 	client := NewClient(config)

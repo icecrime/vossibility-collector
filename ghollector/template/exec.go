@@ -775,7 +775,7 @@ func (s *state) visitValue(n parse.Node, v reflect.Value) {
 	s.at(n)
 	iface, ok := printableValue(v)
 	if !ok {
-		s.errorf("can't print %s of type %s", n, v.Type())
+		s.errorf("can't print %s", n)
 	}
 	s.v.Visit(iface)
 }

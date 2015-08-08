@@ -40,17 +40,6 @@ func (b *Blob) HasAttribute(attr string) bool {
 	return ok
 }
 
-func (b *Blob) Id() string {
-	if t, ok := b.Metadata["_id"]; ok {
-		return fmt.Sprintf("%v", t)
-	}
-	return ""
-}
-
-func (b *Blob) Number() int {
-	return b.Data.Get("number").MustInt()
-}
-
 func (b *Blob) Push(key string, value interface{}) {
 	if strings.HasPrefix(key, "_") {
 		b.Metadata[key] = value
@@ -65,4 +54,15 @@ func (b *Blob) Type() string {
 		return fmt.Sprintf("%v", t)
 	}
 	return b.Event
+}
+
+// Snapshot returns the Id and Data for the snapshot for a Blob that models a
+// live event.
+func (b *Blob) Snapshot() (string, *simplejson.Json) {
+	if i, ok := b.Metadata["_snapshot_id"]; ok {
+		if t, ok := b.Metadata["_snapshot_field"]; ok {
+			return i.(string), b.Data.Get(t.(string))
+		}
+	}
+	return "", nil
 }
