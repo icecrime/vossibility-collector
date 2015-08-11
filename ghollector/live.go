@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/bitly/go-nsq"
@@ -33,10 +34,10 @@ func (m *MessageHandler) HandleMessage(n *nsq.Message) error {
 		log.Error(err)
 		return nil // No need to retry
 	}
-	return m.handleEvent(p.GithubEvent, p.GithubDelivery, n.Body)
+	return m.handleEvent(n.Timestamp, p.GithubEvent, p.GithubDelivery, n.Body)
 }
 
-func (m *MessageHandler) handleEvent(event, delivery string, payload json.RawMessage) error {
+func (m *MessageHandler) handleEvent(timestamp int64, event, delivery string, payload json.RawMessage) error {
 	// Check if we are subscribed to this particular event type.
 	if !m.Repo.IsSubscribed(event) {
 		log.Debugf("ignoring event %q for repository %s", event, m.Repo.PrettyName())
@@ -50,6 +51,10 @@ func (m *MessageHandler) handleEvent(event, delivery string, payload json.RawMes
 		log.Errorf("preparing event %q for storage: %v", event, err)
 		return err
 	}
+
+	// Take the timestamp from the NSQ Message (useful if the queue was put on
+	// hold or if the process is catching up). This timestamp is a UnixNano.
+	b.Push(MetadataTimestamp, time.Unix(0, timestamp))
 	return m.Store.Index(StoreLiveEvent, m.Repo, b, delivery)
 }
 

@@ -57,16 +57,6 @@ const IndexTemplate string = `{
 				}
 			},
 			{
-				"sender": {
-					"match": "sender",
-					"match_mapping_type": "string",
-					"mapping": {
-						"type": "string",
-						"index": "not_analyzed"
-					}
-				}
-			},
-			{
 				"url": {
 					"match": "*url",
 					"match_mapping_type": "string",

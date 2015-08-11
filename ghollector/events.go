@@ -58,8 +58,8 @@ var (
 	// the latest version as a snapshot, associated with the identifier of the
 	// payload in the event message (yes, it can be different).
 	GithubSnapshotedEvents = map[string]string{
-		EvtIssues:      "issue",
-		EvtPullRequest: "pull_request",
+		EvtIssues + "_event":      "issue",
+		EvtPullRequest + "_event": "pull_request",
 	}
 )
 

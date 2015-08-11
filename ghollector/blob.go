@@ -2,12 +2,18 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bitly/go-simplejson"
 )
 
 const (
+	// MetadataTimestamp is the key for the timestamp metadata attribute used
+	// when storing a Blob instance into the Elastic Search backend.
+	MetadataTimestamp = "_timestamp"
+
 	// MetadataType is the key for the type metadata attribute used when
 	// storing a Blob instance into the Elastic Search backend.
 	MetadataType = "_type"
@@ -27,11 +33,7 @@ const (
 
 // NewBlob returns an empty Blob for that particular event type.
 func NewBlob(event string) *Blob {
-	return &Blob{
-		Data:     simplejson.New(),
-		Event:    event,
-		Metadata: make(map[string]interface{}),
-	}
+	return NewBlobFromJson(event, simplejson.New())
 }
 
 // Blob is a opaque type representing an arbitrary payload from GitHub.
@@ -47,14 +49,20 @@ type Blob struct {
 	Metadata map[string]interface{}
 }
 
+func NewBlobFromJson(event string, json *simplejson.Json) *Blob {
+	return &Blob{
+		Data:     json,
+		Event:    event,
+		Metadata: make(map[string]interface{}),
+	}
+}
+
 func NewBlobFromPayload(event string, payload []byte) (*Blob, error) {
 	d, err := simplejson.NewJson(payload)
 	if err != nil {
 		return nil, err
 	}
-	b := NewBlob(event)
-	b.Data = d
-	return b, nil
+	return NewBlobFromJson(event, d), nil
 }
 
 func (b *Blob) Encode() ([]byte, error) {
@@ -75,6 +83,13 @@ func (b *Blob) Push(key string, value interface{}) {
 	b.Data.SetPath(path, value)
 }
 
+func (b *Blob) Timestamp() time.Time {
+	if t, ok := b.Metadata[MetadataTimestamp]; ok {
+		return t.(time.Time)
+	}
+	return time.Now()
+}
+
 func (b *Blob) Type() string {
 	if t, ok := b.Metadata[MetadataType]; ok {
 		return fmt.Sprintf("%v", t)
@@ -87,11 +102,9 @@ func (b *Blob) Type() string {
 func (b *Blob) Snapshot() (string, *Blob) {
 	if i, ok := b.Metadata[MetadataSnapshotId]; ok {
 		if t, ok := b.Metadata[MetadataSnapshotField]; ok {
-			nb := &Blob{
-				Data:  b.Data.Get(t.(string)),
-				Event: b.Event,
-			}
-			return i.(string), nb
+			nb := NewBlobFromJson(b.Event, b.Data.Get(t.(string)))
+			ni := nb.Data.GetPath(strings.Split(i.(string), ".")...).MustInt()
+			return strconv.Itoa(ni), nb
 		}
 	}
 	return "", nil

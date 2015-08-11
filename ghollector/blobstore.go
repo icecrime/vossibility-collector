@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/mattbaird/elastigo/api"
 	"github.com/mattbaird/elastigo/core"
 )
 
@@ -93,13 +95,15 @@ func (b *simpleBlobStore) Index(storage Storage, repo *Repository, blob *Blob, i
 	//
 	// When storing a live event, we always update the next two indices.
 	case StoreLiveEvent:
-		log.Debugf("store live event to %s/%s/%s", repo.LiveIndex(), blob.Type(), id)
-		if _, err := core.Index(repo.LiveIndex(), blob.Type(), id, nil, blob.Data); err != nil {
+		liveIndex := repo.LiveIndexForTimestamp(blob.Timestamp())
+		log.Debugf("store live event to %s/%s/%s", liveIndex, blob.Type(), id)
+		if _, err := index(liveIndex, id, blob); err != nil {
 			return fmt.Errorf("store live event %s data: %v", id, err)
 		}
 		// Before falling through, replace the blob with the snapshot data from
 		// the event, if any.
 		if snapshotId, snapshotBlob := blob.Snapshot(); snapshotBlob != nil {
+			snapshotBlob.Push(MetadataTimestamp, blob.Timestamp())
 			id, blob = snapshotId, snapshotBlob
 		}
 		fallthrough
@@ -110,8 +114,9 @@ func (b *simpleBlobStore) Index(storage Storage, repo *Repository, blob *Blob, i
 	// When storing a current state, we always update the next index.
 	case StoreCurrentState:
 		if _, ok := GithubSnapshotedEvents[blob.Type()]; ok {
-			log.Debugf("store current state to %s/%s/%s", repo.CurrentStateIndex(), blob.Type(), id)
-			if _, err := core.Index(repo.CurrentStateIndex(), blob.Type(), id, nil, blob.Data); err != nil {
+			stateIndex := repo.StateIndexForTimestamp(blob.Timestamp())
+			log.Debugf("store current state to %s/%s/%s", stateIndex, blob.Type(), id)
+			if _, err := index(stateIndex, id, blob); err != nil {
 				return fmt.Errorf("store current state %s data: %v", id, err)
 			}
 		}
@@ -121,10 +126,20 @@ func (b *simpleBlobStore) Index(storage Storage, repo *Repository, blob *Blob, i
 	case StoreSnapshot:
 		if _, ok := GithubSnapshotedEvents[blob.Type()]; ok {
 			log.Debugf("store snapshot to %s/%s/%s", repo.SnapshotIndex(), blob.Type(), id)
-			if _, err := core.Index(repo.SnapshotIndex(), blob.Type(), id, nil, blob.Data); err != nil {
+			if _, err := index(repo.SnapshotIndex(), id, blob); err != nil {
 				return fmt.Errorf("store snapshot %s data: %v", id, err)
 			}
 		}
 	}
 	return nil
+}
+
+func index(index string, id string, blob *Blob) (api.BaseResponse, error) {
+	timestamp := blob.Timestamp().Format(time.RFC3339)
+	return core.IndexWithParameters(
+		index, blob.Type(), id,
+		"" /* parentId */, 0 /* version */, "" /* op_type */, "", /* routing */
+		timestamp,
+		0 /* ttl */, "" /* percolate */, "" /* timeout */, false /* refresh */, map[string]interface{}{}, /* args */
+		blob.Data)
 }
