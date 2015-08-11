@@ -20,6 +20,13 @@ const (
 	StoreLiveEvent
 )
 
+func NewBlobStore(client *github.Client, config *Config) *blobStore {
+	return &blobStore{
+		Client: client,
+		Config: config,
+	}
+}
+
 type blobStore struct {
 	Client *github.Client
 	Config *Config
@@ -45,7 +52,11 @@ func (b *blobStore) Index(storage Storage, repo *Repository, blob *Blob, id stri
 		if _, err := core.Index(repo.LiveIndex(), blob.Type(), id, nil, blob.Data); err != nil {
 			return fmt.Errorf("store live event %s data: %v", id, err)
 		}
-		id, blob = blob.Snapshot()
+		// Before falling through, replace the blob with the snapshot data from
+		// the event, if any.
+		if snapshotId, snapshotBlob := blob.Snapshot(); snapshotBlob != nil {
+			id, blob = snapshotId, snapshotBlob
+		}
 		fallthrough
 	// Current state is an index containing the last version of items at a
 	// given moment in time, and is updated at a frequency configured by the
@@ -65,7 +76,6 @@ func (b *blobStore) Index(storage Storage, repo *Repository, blob *Blob, id stri
 	case StoreSnapshot:
 		if _, ok := GithubSnapshotedEvents[blob.Type()]; ok {
 			log.Debugf("store snapshot to %s/%s/%s", repo.SnapshotIndex(), blob.Type(), id)
-			log.Debugf("%#v\n", blob.Data)
 			if _, err := core.Index(repo.SnapshotIndex(), blob.Type(), id, nil, blob.Data); err != nil {
 				return fmt.Errorf("store snapshot %s data: %v", id, err)
 			}
