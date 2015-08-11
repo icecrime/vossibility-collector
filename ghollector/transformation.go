@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/bitly/go-simplejson"
 	"github.com/icecrime/vossibility/ghollector/template"
 )
@@ -36,6 +37,7 @@ func TransformationsFromConfig(config map[string]map[string]string) (Transformat
 	res := Transformations(make(map[string]*Transformation))
 	funcs := template.FuncMap{
 		"apply_transformation": res.fnApplyTransformation,
+		"user_data":            res.fnApplyUserData,
 	}
 	for event, def := range config {
 		t, err := TransformationFromConfig(event, def, funcs)
@@ -45,6 +47,18 @@ func TransformationsFromConfig(config map[string]map[string]string) (Transformat
 		res[event] = t
 	}
 	return res, nil
+}
+
+func (t Transformations) fnApplyUserData(login string) interface{} {
+	// Ignore any error to retrieve the user data: we don't have entries for
+	// most of our users, and only store information for those who have
+	// particular status (employees and/or maintainers).
+	us := &userStore{}
+	if ud, err := us.Get(login); err == nil {
+		logrus.Warnf("Successfully got user data for %s", login)
+		return ud
+	}
+	return &UserData{Login: login}
 }
 
 func (t Transformations) fnApplyTransformation(name string, data interface{}) (interface{}, error) {

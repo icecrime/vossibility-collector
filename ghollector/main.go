@@ -33,6 +33,7 @@ func main() {
 		initCommand,
 		runCommand,
 		syncCommand,
+		updateUsersCommand,
 	}
 
 	app.Before = func(c *cli.Context) error {

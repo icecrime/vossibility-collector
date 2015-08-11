@@ -58,10 +58,14 @@ func (b *Blob) Type() string {
 
 // Snapshot returns the Id and Data for the snapshot for a Blob that models a
 // live event.
-func (b *Blob) Snapshot() (string, *simplejson.Json) {
+func (b *Blob) Snapshot() (string, *Blob) {
 	if i, ok := b.Metadata["_snapshot_id"]; ok {
 		if t, ok := b.Metadata["_snapshot_field"]; ok {
-			return i.(string), b.Data.Get(t.(string))
+			nb := &Blob{
+				Data:  b.Data.Get(t.(string)),
+				Event: b.Event,
+			}
+			return i.(string), nb
 		}
 	}
 	return "", nil

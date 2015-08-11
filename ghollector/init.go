@@ -37,7 +37,27 @@ const IndexTemplate string = `{
 				}
 			},
 			{
+				"company": {
+					"match": "company",
+					"match_mapping_type": "string",
+					"mapping": {
+						"type": "string",
+						"index": "not_analyzed"
+					}
+				}
+			},
+			{
 				"login": {
+					"match": "login",
+					"match_mapping_type": "string",
+					"mapping": {
+						"type": "string",
+						"index": "not_analyzed"
+					}
+				}
+			},
+			{
+				"sender": {
 					"match": "sender",
 					"match_mapping_type": "string",
 					"mapping": {

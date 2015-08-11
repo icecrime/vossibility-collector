@@ -25,7 +25,7 @@ type blobStore struct {
 	Config *Config
 }
 
-func (b *blobStore) Index(storage Storage, repo *Repository, blob *Blob, delivery string) error {
+func (b *blobStore) Index(storage Storage, repo *Repository, blob *Blob, id string) error {
 	// Apply the transformation.
 	if trans, ok := b.Config.Transformations[blob.Type()]; ok {
 		b, err := trans.ApplyBlob(blob)
@@ -41,10 +41,11 @@ func (b *blobStore) Index(storage Storage, repo *Repository, blob *Blob, deliver
 	//
 	// When storing a live event, we always update the next two indices.
 	case StoreLiveEvent:
-		log.Debugf("store live event to %s/%s/%s", repo.LiveIndex(), blob.Type(), delivery)
-		if _, err := core.Index(repo.LiveIndex(), blob.Type(), delivery, nil, blob.Data); err != nil {
-			return fmt.Errorf("store live event %s data: %v", delivery, err)
+		log.Debugf("store live event to %s/%s/%s", repo.LiveIndex(), blob.Type(), id)
+		if _, err := core.Index(repo.LiveIndex(), blob.Type(), id, nil, blob.Data); err != nil {
+			return fmt.Errorf("store live event %s data: %v", id, err)
 		}
+		id, blob = blob.Snapshot()
 		fallthrough
 	// Current state is an index containing the last version of items at a
 	// given moment in time, and is updated at a frequency configured by the
@@ -53,10 +54,9 @@ func (b *blobStore) Index(storage Storage, repo *Repository, blob *Blob, deliver
 	// When storing a current state, we always update the next index.
 	case StoreCurrentState:
 		if _, ok := GithubSnapshotedEvents[blob.Type()]; ok {
-			id, snapshot := blob.Snapshot()
-			log.Debugf("store current state to %s/%s/%d", repo.CurrentStateIndex(), blob.Type(), id)
-			if _, err := core.Index(repo.CurrentStateIndex(), blob.Type(), id, nil, snapshot); err != nil {
-				return fmt.Errorf("store live event %s data: %v", delivery, err)
+			log.Debugf("store current state to %s/%s/%s", repo.CurrentStateIndex(), blob.Type(), id)
+			if _, err := core.Index(repo.CurrentStateIndex(), blob.Type(), id, nil, blob.Data); err != nil {
+				return fmt.Errorf("store current state %s data: %v", id, err)
 			}
 		}
 		fallthrough
@@ -64,10 +64,10 @@ func (b *blobStore) Index(storage Storage, repo *Repository, blob *Blob, deliver
 	// closed.
 	case StoreSnapshot:
 		if _, ok := GithubSnapshotedEvents[blob.Type()]; ok {
-			id, snapshot := blob.Snapshot()
-			log.Debugf("store snapshot to %s/%s/%d", repo.SnapshotIndex(), blob.Type(), id)
-			if _, err := core.Index(repo.SnapshotIndex(), blob.Type(), id, nil, snapshot); err != nil {
-				return fmt.Errorf("store live event %s data: %v", delivery, err)
+			log.Debugf("store snapshot to %s/%s/%s", repo.SnapshotIndex(), blob.Type(), id)
+			log.Debugf("%#v\n", blob.Data)
+			if _, err := core.Index(repo.SnapshotIndex(), blob.Type(), id, nil, blob.Data); err != nil {
+				return fmt.Errorf("store snapshot %s data: %v", id, err)
 			}
 		}
 	}

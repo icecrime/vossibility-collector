@@ -142,7 +142,7 @@ func indexingProc(blobStore *blobStore, repo *Repository, wg *sync.WaitGroup, to
 			continue
 		}
 		// Persist the object in Elastic Search.
-		if err := blobStore.Index(StoreSnapshot, repo, b, ""); err != nil {
+		if err := blobStore.Index(StoreSnapshot, repo, b, i.Id()); err != nil {
 			log.Error(err)
 		}
 	}
