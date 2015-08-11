@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/bitly/go-simplejson"
 	"github.com/icecrime/vossibility/ghollector/template"
 )
@@ -55,7 +54,6 @@ func (t Transformations) fnApplyUserData(login string) interface{} {
 	// particular status (employees and/or maintainers).
 	us := &userStore{}
 	if ud, err := us.Get(login); err == nil {
-		logrus.Warnf("Successfully got user data for %s", login)
 		return ud
 	}
 	return &UserData{Login: login}

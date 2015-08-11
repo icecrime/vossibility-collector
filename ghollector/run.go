@@ -94,8 +94,20 @@ func resetNextTickTime(p PeriodicSync) time.Duration {
 	return nextTickTime
 }
 
-func runPeriodicSync(client *github.Client, config *Config) error {
-	// TODO Sync all opened issues into a newly created index.
-	// Need to wrap sync.go in a SyncJob class with configurable options
-	return nil
+func runPeriodicSync(client *github.Client, config *Config) {
+	// Get the list of repositories.
+	repos := make([]*Repository, 0, len(config.Repositories))
+	for _, r := range config.Repositories {
+		repos = append(repos, r)
+	}
+
+	// Run a default synchronization job, with the storage type set to
+	// StoreCurrentState (which corresponds to our rolling storage).
+	syncOptions := DefaultSyncOptions
+	syncOptions.SleepPerPage = 10 // TODO Tired of getting blacklisted :-)
+	syncOptions.Storage = StoreCurrentState
+
+	// Create the blobStore and run the syncCommand.
+	blobStore := NewTransformingBlobStore(config.Transformations)
+	NewSyncCommandWithOptions(client, blobStore, &syncOptions).Run(repos)
 }

@@ -31,6 +31,7 @@ func main() {
 	app.Action = runCommand.Action
 	app.Commands = []cli.Command{
 		initCommand,
+		limitsCommand,
 		runCommand,
 		syncCommand,
 		updateUsersCommand,

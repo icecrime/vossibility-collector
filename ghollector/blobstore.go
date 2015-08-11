@@ -4,37 +4,66 @@ import (
 	"fmt"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/google/go-github/github"
 	"github.com/mattbaird/elastigo/core"
 )
 
 const (
+	// LabelsAttribute is the key in a GitHub payload for the labels.
 	LabelsAttribute = "labels"
 )
 
+// Storage is the target storage for an Index operation.
 type Storage int
 
 const (
+	// StoreSnapshot corresponds to the non-expiring index (that is, the index
+	// that always holds the latest version of all GitHub items). This index
+	// only stores snapshotted data.
 	StoreSnapshot Storage = iota
+
+	// StoreCurrentState corresponds to the periocally rolling index (that is,
+	// the index that gets archived and renewed at a regular interval). This
+	// index only stores snapshotted data.
 	StoreCurrentState
+
+	// StoreLiveEvent corresponds to the rolling index of events.
 	StoreLiveEvent
 )
 
-func NewBlobStore(client *github.Client, config *Config) *blobStore {
-	return &blobStore{
-		Client: client,
-		Config: config,
+// blobStore is capable of storing a blob into a backend.
+type blobStore interface {
+	// Index stores the blob into the specified storage under the provided id
+	// for a given repository.
+	Index(Storage, *Repository, *Blob, string) error
+}
+
+// transformingBlobStore applies transformations before forwarding the
+// resulting blob to a simpleBlobStore.
+type transformations struct {
+	transformations Transformations
+}
+
+// NewTransformingBlobStore creates a new transformingBlobStore backed by a
+// simpleBlobStore.
+func NewTransformingBlobStore(transformations Transformations) blobStore {
+	return &transformingBlobStore{
+		impl:            NewSimpleBlobStore(),
+		transformations: transformations,
 	}
 }
 
-type blobStore struct {
-	Client *github.Client
-	Config *Config
+// transformingBlobStore implements blobStore by applying transformations
+// before forwarding the resulting blob to a backing blobStore instance.
+type transformingBlobStore struct {
+	impl            blobStore
+	transformations Transformations
 }
 
-func (b *blobStore) Index(storage Storage, repo *Repository, blob *Blob, id string) error {
+// Index stores the blob into the specified storage under the provided id for
+// a given repository.
+func (b *transformingBlobStore) Index(storage Storage, repo *Repository, blob *Blob, id string) error {
 	// Apply the transformation.
-	if trans, ok := b.Config.Transformations[blob.Type()]; ok {
+	if trans, ok := b.transformations[blob.Type()]; ok {
 		b, err := trans.ApplyBlob(blob)
 		if err != nil {
 			return fmt.Errorf("applying transformation to event %q: %v", blob.Type(), err)
@@ -42,6 +71,22 @@ func (b *blobStore) Index(storage Storage, repo *Repository, blob *Blob, id stri
 		blob = b
 	}
 
+	// Forward to the backing implementation.
+	return b.impl.Index(storage, repo, blob, id)
+}
+
+// NewSimpleBlobStore creates a new simpleBlobStore.
+func NewSimpleBlobStore() blobStore {
+	return &simpleBlobStore{}
+}
+
+// simpleBlobStore provides basic facilities for writing into Elastic Search.
+type simpleBlobStore struct {
+}
+
+// Index stores the blob into the specified storage under the provided id for
+// a given repository.
+func (b *simpleBlobStore) Index(storage Storage, repo *Repository, blob *Blob, id string) error {
 	switch storage {
 	// Live is an index containing the webhook events. In this particular case,
 	// we use the delivery id as the document index.
@@ -80,19 +125,6 @@ func (b *blobStore) Index(storage Storage, repo *Repository, blob *Blob, id stri
 				return fmt.Errorf("store snapshot %s data: %v", id, err)
 			}
 		}
-	}
-	return nil
-}
-
-func (b *blobStore) PrepareForStorage(repo *Repository, o *Blob) error {
-	if o.Type() == EvtPullRequest && !o.HasAttribute(LabelsAttribute) {
-		number := o.Data.Get("number").MustInt()
-		log.Debugf("fetching labels for %s #%d", repo.PrettyName(), number)
-		l, _, err := b.Client.Issues.ListLabelsByIssue(repo.User, repo.Repo, number, &github.ListOptions{})
-		if err != nil {
-			return fmt.Errorf("retrieve labels for issue %s: %v", number, err)
-		}
-		o.Push(LabelsAttribute, l)
 	}
 	return nil
 }

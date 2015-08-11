@@ -14,17 +14,16 @@ func liveEventType(event string) string {
 }
 
 type MessageHandler struct {
-	Repo  *Repository
-	Store *blobStore
+	Client *github.Client
+	Repo   *Repository
+	Store  blobStore
 }
 
 func NewMessageHandler(client *github.Client, config *Config, repo *Repository) *MessageHandler {
 	return &MessageHandler{
-		Repo: repo,
-		Store: &blobStore{
-			Client: client,
-			Config: config,
-		},
+		Client: client,
+		Repo:   repo,
+		Store:  NewTransformingBlobStore(config.Transformations),
 	}
 }
 
@@ -47,9 +46,22 @@ func (m *MessageHandler) handleEvent(event, delivery string, payload json.RawMes
 
 	// Create the blob object and complete any data that needs to be.
 	b, err := NewBlobFromPayload(liveEventType(event), payload)
-	if err = m.Store.PrepareForStorage(m.Repo, b); err != nil {
+	if err = m.prepareForStorage(b); err != nil {
 		log.Errorf("preparing event %q for storage: %v", event, err)
 		return err
 	}
 	return m.Store.Index(StoreLiveEvent, m.Repo, b, delivery)
+}
+
+func (m *MessageHandler) prepareForStorage(o *Blob) error {
+	if o.Type() == EvtPullRequest && !o.HasAttribute(LabelsAttribute) {
+		number := o.Data.Get("number").MustInt()
+		log.Debugf("fetching labels for %s #%d", m.Repo.PrettyName(), number)
+		l, _, err := m.Client.Issues.ListLabelsByIssue(m.Repo.User, m.Repo.Repo, number, &github.ListOptions{})
+		if err != nil {
+			return fmt.Errorf("retrieve labels for issue %s: %v", number, err)
+		}
+		o.Push(LabelsAttribute, l)
+	}
+	return nil
 }
