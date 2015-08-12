@@ -266,13 +266,13 @@ func (s *syncCmd) indexingProc(r *Repository) {
 		}
 		// We create a blob from the payload, which essentially deserialized
 		// the object back from JSON...
-		b, err := NewBlobFromPayload(i.Type(), payload)
+		b, err := NewBlobFromPayload(i.Type(), i.Id(), payload)
 		if err != nil {
 			log.Errorf("creating blob from payload %q (%s): %v", i.Id(), i.Type(), err)
 			continue
 		}
 		// Persist the object in Elastic Search.
-		if err := s.blobStore.Index(StoreSnapshot, r, b, i.Id()); err != nil {
+		if err := s.blobStore.Index(StoreSnapshot, r, b); err != nil {
 			log.Error(err)
 		}
 	}

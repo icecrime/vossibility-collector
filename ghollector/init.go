@@ -57,6 +57,16 @@ const IndexTemplate string = `{
 				}
 			},
 			{
+				"milestone": {
+					"match": "milestone",
+					"match_mapping_type": "string",
+					"mapping": {
+						"type": "string",
+						"index": "not_analyzed"
+					}
+				}
+			},
+			{
 				"url": {
 					"match": "*url",
 					"match_mapping_type": "string",

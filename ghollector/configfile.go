@@ -58,7 +58,7 @@ func (c *serializedConfig) verifyRepositories() error {
 
 func (c *serializedConfig) verifyTransformations() error {
 	// Some transformations are mandatory.
-	for _, mandatoryTransfo := range []string{EvtIssues, EvtPullRequest} {
+	for _, mandatoryTransfo := range []string{GithubTypeIssue, GithubTypePullRequest} {
 		if _, ok := c.Transformations[mandatoryTransfo]; !ok {
 			return fmt.Errorf("missing required transformation %q", mandatoryTransfo)
 		}

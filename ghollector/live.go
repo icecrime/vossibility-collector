@@ -46,7 +46,7 @@ func (m *MessageHandler) handleEvent(timestamp int64, event, delivery string, pa
 	log.Infof("receive event %q for repository %q", event, m.Repo.PrettyName())
 
 	// Create the blob object and complete any data that needs to be.
-	b, err := NewBlobFromPayload(liveEventType(event), payload)
+	b, err := NewBlobFromPayload(liveEventType(event), delivery, payload)
 	if err = m.prepareForStorage(b); err != nil {
 		log.Errorf("preparing event %q for storage: %v", event, err)
 		return err
@@ -54,12 +54,12 @@ func (m *MessageHandler) handleEvent(timestamp int64, event, delivery string, pa
 
 	// Take the timestamp from the NSQ Message (useful if the queue was put on
 	// hold or if the process is catching up). This timestamp is a UnixNano.
-	b.Push(MetadataTimestamp, time.Unix(0, timestamp))
-	return m.Store.Index(StoreLiveEvent, m.Repo, b, delivery)
+	b.Timestamp = time.Unix(0, timestamp)
+	return m.Store.Index(StoreLiveEvent, m.Repo, b)
 }
 
 func (m *MessageHandler) prepareForStorage(o *Blob) error {
-	if o.Type() == EvtPullRequest && !o.HasAttribute(LabelsAttribute) {
+	if o.Type == EvtPullRequest && !o.HasAttribute(LabelsAttribute) {
 		number := o.Data.Get("number").MustInt()
 		log.Debugf("fetching labels for %s #%d", m.Repo.PrettyName(), number)
 		l, _, err := m.Client.Issues.ListLabelsByIssue(m.Repo.User, m.Repo.Repo, number, &github.ListOptions{})

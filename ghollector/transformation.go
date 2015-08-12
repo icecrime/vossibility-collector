@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bitly/go-simplejson"
 	"github.com/icecrime/vossibility/ghollector/template"
 )
 
@@ -102,65 +101,19 @@ func TransformationFromConfig(event string, config map[string]string, funcs temp
 // Apply takes a serialized JSON payload and returns a Blob on which the
 // transformation has been applied, as well as a collection of metadata
 // corresponding to fields prefixed by an underscore.
-func (t Transformation) Apply(payload []byte) (*Blob, error) {
-	sj, err := simplejson.NewJson(payload)
-	if err != nil {
-		return nil, err
-	}
-
-	m, err := sj.Map()
-	if err != nil {
-		return nil, err
-	}
-
-	// For each destination field defined in the transformation, apply the
-	// associated template and store it in the output.
-	res := NewBlob(t.event)
-	for key, tmpl := range t.templates {
-		// A nil template is just a pass-through.
-		if tmpl == nil {
-			path := strings.Split(key, ".")
-			v := sj.GetPath(path...).Interface()
-			res.Push(key, v)
-			continue
-		}
-
-		// Visit the template to extract the field values.
-		vis := &visitor{}
-		if err := tmpl.Execute(vis, m); err != nil {
-			return nil, err
-		}
-		res.Push(key, vis.Value())
-	}
-	return res, nil
-}
-
-// ApplyBlob takes a serialized JSON payload and returns a Blob on which the
-// transformation has been applied, as well as a collection of metadata
-// corresponding to fields prefixed by an underscore.
-func (t Transformation) ApplyBlob(b *Blob) (*Blob, error) {
+func (t Transformation) Apply(b *Blob) (*Blob, error) {
 	m, err := b.Data.Map()
 	if err != nil {
 		return nil, err
 	}
 
 	// Create the result blob, but inherit from the parent's metadata.
-	res := NewBlob(b.Event)
-	for k, v := range b.Metadata {
-		res.Metadata[k] = v
-	}
+	res := NewBlob(b.Type, b.Id)
+	res.Timestamp = b.Timestamp
 
 	// For each destination field defined in the transformation, apply the
 	// associated template and store it in the output.
 	for key, tmpl := range t.templates {
-		// A nil template is just a pass-through.
-		if tmpl == nil {
-			path := strings.Split(key, ".")
-			v := b.Data.GetPath(path...).Interface()
-			res.Push(key, v)
-			continue
-		}
-
 		// Visit the template to extract the field values.
 		vis := &visitor{}
 		if err := tmpl.Execute(vis, m); err != nil {
@@ -171,8 +124,8 @@ func (t Transformation) ApplyBlob(b *Blob) (*Blob, error) {
 	return res, nil
 }
 
-// ApplyMap is a less capable version of ApplyBlob that only knows how to deal
-// with simple objects, and won't handle any metadata fields. It is used when
+// ApplyMap is a less capable version of Apply that only knows how to deal with
+// simple objects, and won't handle any metadata fields. It is used when
 // applying a transformation to a nested object where metadata transformation
 // is not expected.
 func (t Transformation) ApplyMap(m map[string]interface{}) (map[string]interface{}, error) {

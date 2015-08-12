@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -10,10 +9,6 @@ import (
 )
 
 const (
-	// MetadataTimestamp is the key for the timestamp metadata attribute used
-	// when storing a Blob instance into the Elastic Search backend.
-	MetadataTimestamp = "_timestamp"
-
 	// MetadataType is the key for the type metadata attribute used when
 	// storing a Blob instance into the Elastic Search backend.
 	MetadataType = "_type"
@@ -31,38 +26,51 @@ const (
 	MetadataSnapshotField = "_snapshot_field"
 )
 
-// NewBlob returns an empty Blob for that particular event type.
-func NewBlob(event string) *Blob {
-	return NewBlobFromJson(event, simplejson.New())
-}
-
 // Blob is a opaque type representing an arbitrary payload from GitHub.
 type Blob struct {
-	// Event is the type of event associated with this blob.
-	Event string
-
 	// Data is the payload content.
 	Data *simplejson.Json
 
-	// Metadata is a collection of (key, value) pairs that decorate the blob
-	// and are used upon storage.
-	Metadata map[string]interface{}
+	// Id sets the blob primary key in the Elastic Search store.
+	Id string
+
+	// SnapshotId identifies the field of the snapshotted data that should be
+	// used as the snapshot Id.
+	SnapshotId string
+
+	// SnapshotField identifies the field of the blob data that should be
+	// extracted and used as a snapshot.
+	SnapshotField string
+
+	// Timestamp is the creation time of the blob. It defaults to the object
+	// creation time but can be overriden, most notably in the case of life
+	// events when the queue timestamp will be used instead.
+	Timestamp time.Time
+
+	// Type is the blob type in the Elastic Search store.
+	Type string
 }
 
-func NewBlobFromJson(event string, json *simplejson.Json) *Blob {
+// NewBlob returns an empty Blob for that particular event type and id.
+func NewBlob(event, id string) *Blob {
+	return NewBlobFromJson(event, id, simplejson.New())
+}
+
+func NewBlobFromJson(event, id string, json *simplejson.Json) *Blob {
 	return &Blob{
-		Data:     json,
-		Event:    event,
-		Metadata: make(map[string]interface{}),
+		Data:      json,
+		Id:        id,
+		Timestamp: time.Now(),
+		Type:      event,
 	}
 }
 
-func NewBlobFromPayload(event string, payload []byte) (*Blob, error) {
+func NewBlobFromPayload(event, id string, payload []byte) (*Blob, error) {
 	d, err := simplejson.NewJson(payload)
 	if err != nil {
 		return nil, err
 	}
-	return NewBlobFromJson(event, d), nil
+	return NewBlobFromJson(event, id, d), nil
 }
 
 func (b *Blob) Encode() ([]byte, error) {
@@ -74,39 +82,46 @@ func (b *Blob) HasAttribute(attr string) bool {
 	return ok
 }
 
-func (b *Blob) Push(key string, value interface{}) {
+func (b *Blob) Push(key string, value interface{}) error {
 	if strings.HasPrefix(key, "_") {
-		b.Metadata[key] = value
-		return
+		return b.pushSpecialAttribute(key, value)
 	}
 	path := strings.Split(key, ".")
 	b.Data.SetPath(path, value)
-}
-
-func (b *Blob) Timestamp() time.Time {
-	if t, ok := b.Metadata[MetadataTimestamp]; ok {
-		return t.(time.Time)
-	}
-	return time.Now()
-}
-
-func (b *Blob) Type() string {
-	if t, ok := b.Metadata[MetadataType]; ok {
-		return fmt.Sprintf("%v", t)
-	}
-	return b.Event
+	return nil
 }
 
 // Snapshot returns the Id and Data for the snapshot for a Blob that models a
 // live event.
-func (b *Blob) Snapshot() (string, *Blob) {
-	// TODO This whole thing is awful.
-	if i, ok := b.Metadata[MetadataSnapshotId]; ok {
-		if t, ok := b.Metadata[MetadataSnapshotField]; ok {
-			nb := NewBlobFromJson(b.Event, b.Data.Get(t.(string)))
-			ni := nb.Data.GetPath(strings.Split(i.(string), ".")...).MustInt()
-			return strconv.Itoa(ni), nb
-		}
+func (b *Blob) Snapshot() *Blob {
+	if b.SnapshotId == "" || b.SnapshotField == "" {
+		return nil
 	}
-	return "", nil
+
+	// The snapshot data is simply a sub-attribute of the blob data. Its id is
+	// a sub-attribute of the result, as identified by SnapshotId.
+	snapshot := b.Data.Get(b.SnapshotField)
+	snapshotId := fmt.Sprintf("%v", snapshot.GetPath(strings.Split(b.SnapshotId, ".")...))
+	return &Blob{
+		Data:      snapshot,
+		Id:        snapshotId,
+		Timestamp: b.Timestamp,
+		Type:      b.Type,
+	}
+}
+
+func (b *Blob) pushSpecialAttribute(key string, value interface{}) error {
+	metaFields := map[string]*string{
+		MetadataType:          &b.Type,
+		MetadataSnapshotId:    &b.SnapshotId,
+		MetadataSnapshotField: &b.SnapshotField,
+	}
+	if target, ok := metaFields[key]; !ok {
+		return fmt.Errorf("invalid metadata field %q", key)
+	} else if strValue, ok := value.(string); !ok {
+		return fmt.Errorf("bad value %v for %q attribute (expected string)", value, key)
+	} else {
+		*target = strValue
+		return nil
+	}
 }
