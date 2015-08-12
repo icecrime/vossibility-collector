@@ -64,8 +64,7 @@ type transformingBlobStore struct {
 // Index stores the blob into the specified storage under the provided id for
 // a given repository.
 func (b *transformingBlobStore) Index(storage Storage, repo *Repository, blob *Blob, id string) error {
-	// Apply the transformation.
-	if trans, ok := b.transformations[blob.Type()]; ok {
+	if trans := b.getTransformation(repo, blob.Type()); trans != nil {
 		b, err := trans.ApplyBlob(blob)
 		if err != nil {
 			return fmt.Errorf("applying transformation to event %q: %v", blob.Type(), err)
@@ -75,6 +74,21 @@ func (b *transformingBlobStore) Index(storage Storage, repo *Repository, blob *B
 
 	// Forward to the backing implementation.
 	return b.impl.Index(storage, repo, blob, id)
+}
+
+func (b *transformingBlobStore) getTransformation(repo *Repository, event string) *Transformation {
+	switch event {
+	case EvtPullRequest:
+		// [transformation.pull_request] is mandatory
+		return b.transformations[EvtPullRequest]
+	case EvtIssues:
+		// [transformation.issues] is mandatory
+		return b.transformations[EvtIssues] // [transformation.issues] is mandatory
+	default:
+		// For arbitrary event type, we have to look into the configuration
+		// definition for the event set.
+		return repo.EventSet[event]
+	}
 }
 
 // NewSimpleBlobStore creates a new simpleBlobStore.
@@ -102,7 +116,10 @@ func (b *simpleBlobStore) Index(storage Storage, repo *Repository, blob *Blob, i
 		}
 		// Before falling through, replace the blob with the snapshot data from
 		// the event, if any.
-		if snapshotId, snapshotBlob := blob.Snapshot(); snapshotBlob != nil {
+		if snapshotId, snapshotBlob := blob.Snapshot(); snapshotBlob == nil {
+			return nil
+		} else {
+			// TODO Ugly
 			snapshotBlob.Push(MetadataTimestamp, blob.Timestamp())
 			id, blob = snapshotId, snapshotBlob
 		}
@@ -113,22 +130,18 @@ func (b *simpleBlobStore) Index(storage Storage, repo *Repository, blob *Blob, i
 	//
 	// When storing a current state, we always update the next index.
 	case StoreCurrentState:
-		if _, ok := GithubSnapshotedEvents[blob.Type()]; ok {
-			stateIndex := repo.StateIndexForTimestamp(blob.Timestamp())
-			log.Debugf("store current state to %s/%s/%s", stateIndex, blob.Type(), id)
-			if _, err := index(stateIndex, id, blob); err != nil {
-				return fmt.Errorf("store current state %s data: %v", id, err)
-			}
+		stateIndex := repo.StateIndexForTimestamp(blob.Timestamp())
+		log.Debugf("store current state to %s/%s/%s", stateIndex, blob.Type(), id)
+		if _, err := index(stateIndex, id, blob); err != nil {
+			return fmt.Errorf("store current state %s data: %v", id, err)
 		}
 		fallthrough
 	// Snapshot is an index containing the last version of all items, opened or
 	// closed.
 	case StoreSnapshot:
-		if _, ok := GithubSnapshotedEvents[blob.Type()]; ok {
-			log.Debugf("store snapshot to %s/%s/%s", repo.SnapshotIndex(), blob.Type(), id)
-			if _, err := index(repo.SnapshotIndex(), id, blob); err != nil {
-				return fmt.Errorf("store snapshot %s data: %v", id, err)
-			}
+		log.Debugf("store snapshot to %s/%s/%s", repo.SnapshotIndex(), blob.Type(), id)
+		if _, err := index(repo.SnapshotIndex(), id, blob); err != nil {
+			return fmt.Errorf("store snapshot %s data: %v", id, err)
 		}
 	}
 	return nil

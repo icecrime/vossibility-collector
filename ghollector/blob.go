@@ -100,6 +100,7 @@ func (b *Blob) Type() string {
 // Snapshot returns the Id and Data for the snapshot for a Blob that models a
 // live event.
 func (b *Blob) Snapshot() (string, *Blob) {
+	// TODO This whole thing is awful.
 	if i, ok := b.Metadata[MetadataSnapshotId]; ok {
 		if t, ok := b.Metadata[MetadataSnapshotField]; ok {
 			nb := NewBlobFromJson(b.Event, b.Data.Get(t.(string)))

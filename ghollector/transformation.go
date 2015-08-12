@@ -91,10 +91,8 @@ func TransformationFromConfig(event string, config map[string]string, funcs temp
 	out = NewTransformation(event)
 	for key, tmpl := range config {
 		var t *template.Template
-		if tmpl != "" {
-			if t, err = template.New(key).Funcs(funcs).Parse(tmpl); err != nil {
-				return nil, err
-			}
+		if t, err = template.New(key).Funcs(funcs).Parse(tmpl); err != nil {
+			return nil, err
 		}
 		out.templates[key] = t
 	}

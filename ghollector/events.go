@@ -53,14 +53,6 @@ var (
 		EvtTeamAdd:                  true,
 		EvtWatch:                    true,
 	}
-
-	// GithubSnapshotedEvents is a map of events for which we want to persist
-	// the latest version as a snapshot, associated with the identifier of the
-	// payload in the event message (yes, it can be different).
-	GithubSnapshotedEvents = map[string]string{
-		EvtIssues + "_event":      "issue",
-		EvtPullRequest + "_event": "pull_request",
-	}
 )
 
 func IsValidEventType(event string) bool {

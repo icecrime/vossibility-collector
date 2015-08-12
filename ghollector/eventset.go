@@ -10,15 +10,12 @@ const (
 	DefaultEventSet = "default"
 )
 
-// EventSet is a list of Github event types to subscribe to.
-type EventSet []string
+// EventSet is a map of Github event types to subscribe to associated with
+// their transformation.
+type EventSet map[string]*Transformation
 
 // Contains returns whether the given eventType belongs in the event set.
 func (e EventSet) Contains(eventType string) bool {
-	for _, v := range e {
-		if v == eventType {
-			return true
-		}
-	}
-	return false
+	_, ok := e[eventType]
+	return ok
 }

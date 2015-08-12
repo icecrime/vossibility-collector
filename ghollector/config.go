@@ -47,27 +47,35 @@ type Config struct {
 // configFromFile creates a Config object from its serialized counterpart.
 func configFromFile(c *serializedConfig) *Config {
 	out := &Config{
-		ElasticSearch:   c.ElasticSearch,
-		GithubApiToken:  c.GithubApiToken,
-		NSQ:             c.NSQ,
-		EventSet:        c.EventSet,
-		Repositories:    make(map[string]*Repository),
-		Transformations: make(map[string]*Transformation),
+		ElasticSearch:  c.ElasticSearch,
+		GithubApiToken: c.GithubApiToken,
+		NSQ:            c.NSQ,
+		EventSet:       make(map[string]EventSet),
+		Repositories:   make(map[string]*Repository),
 	}
-	for name, _ := range c.Repositories {
-		r, err := c.getRepository(name)
-		if err != nil {
-			log.Fatalf("corrupted repository %q in configuration: %v", name, err)
-		}
-		out.Repositories[name] = r
-	}
-
+	// Create transformations.
 	t, err := TransformationsFromConfig(c.Transformations)
 	if err != nil {
 		log.Fatal(err)
 	}
 	out.Transformations = t
-
+	// Create event sets.
+	for name, d := range c.EventSet {
+		set := EventSet(make(map[string]*Transformation))
+		for event, transformation := range d {
+			set[event] = out.Transformations[transformation]
+		}
+		out.EventSet[name] = set
+	}
+	// Create repositories.
+	for name, config := range c.Repositories {
+		out.Repositories[name] = &Repository{
+			GivenName:        name,
+			EventSet:         out.EventSet[config.events],
+			RepositoryConfig: &config,
+		}
+	}
+	// Initialize periodic sync.
 	p, err := NewPeriodicSync(c.PeriodicSync)
 	if err != nil {
 		log.Fatal(err)

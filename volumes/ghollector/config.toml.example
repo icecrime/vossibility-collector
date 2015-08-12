@@ -1,5 +1,10 @@
-elasticsearch = "elasticsearch"
+elasticsearch = "localhost"
+
+# A GitHub API token gives you more API request per hour.
 github_api_token = ""
+
+# A roll is necessary to archive the state of the repository at a regular
+# interval, allowing us to trace the modifications over time.
 sync_periodicity = "hourly"
 
 # NSQ global configuration
@@ -22,131 +27,122 @@ lookupd = "lookupd:4161"
     user = "docker"
     repo = "docker"
     topic = "hooks-docker"
+    start_index = 8000 # We don't expect anything relevant to move before
 
-    # [repositories.swarm]
-    # user = "docker"
-    # repo = "docker"
-    # queue = "hooks-swarm"
+    [repositories.swarm]
+    user = "docker"
+    repo = "docker"
+    queue = "hooks-swarm"
 
 # Event sets definition: each set defines a list of events to subscribe to, and
-# are referenced by repositories definitions.
+# are referenced by repositories definitions. In an event set definition, each
+# GitHub event type is associated with a transformation identifier.
+#
+# Note that pull requests and issues are specific in that they are always
+# queried and archived.
 
 [event_set]
 
-# Default event set is a narrow subset.
-default = [
-    "commit_comment",
-    "fork",
-    "issue_comment",
-    "issues",
-    "pull_request",
-    "pull_request_review_comment",
-    "watch"
-]
-
-full = [
-    "commit_comment",
-    "create",
-    "delete",
-    "deployment",
-    "deployment_status",
-    "follow",
-    "fork",
-    "fork_apply",
-    "gollum",
-    "issue_comment",
-    "issues",
-    "member",
-    "membership",
-    "page_build",
-    "public",
-    "pull_request",
-    "pull_request_review_comment",
-    "push",
-    "release",
-    "repositories",
-    "status",
-    "team_add",
-    "watch"
-]
+    [event_set.default]
+    commit_comment = "commit_comment_event"
+    fork = "fork_event"
+    issue_comment = "issue_comment_event"
+    issues = "issues_event"
+    pull_request = "pull_request_event"
+    pull_request_review_comment = "pull_request_review_comment_event"
+    watch = "watch_event"
 
 # Transformations to apply to different entity type before forwarding to the
 # storage backend. We usually don't need every field provided by Github,
 # especially the various links, user, and repository information. We also
 # sometimes need to rename or move the fields around.
 #
-# Each table name must be a valid Github event identifier.
-# Each table element must associate the destination field identifier to a
-# Golang text/template that will be applied to the received payload, or to the
-# empty string to say that you want to keep the source field unchanged.
+# Each table element must associate a destination field identifier to a Golang
+# text/template that will be applied to the received payload.
 #
 # All messages have an implicit _type attribute that defaults to the type of
 # the event (but can be overriden).
 
 [transformations]
 
-    [transformations.commit_comment]
-    action = ""
+    # The "issues" transformation is required as Issues are always stored.
+    [transformations.issues]
+    assignee = "{{ .assignee }}"
+    author = "{{ user_data .user.login }}"
+    body = "{{ .body }}"
+    closed_at = "{{ .closed_at }}"
+    comments = "{{ .comments }}"
+    created_at = "{{ .created_at }}"
+    labels = "{{ range .labels }}{{ .name }}{{ end }}"
+    locked = "{{ .locked }}"
+    milestone = "{{ .milestone }}"
+    number = "{{ .number }}"
+    state = "{{ .state }}"
+    updated_at = "{{ .updated_at }}"
+
+    # The "pull_request" transformation is required as Pull Request are always
+    # stored.
+    [transformations.pull_request]
+    additions = "{{ .additions }}"
+    author = "{{ user_data .user.login }}"
+    body = "{{ .body }}"
+    changed_files = "{{ .changed_files }}"
+    closed_at = "{{ .closed_at }}"
+    comments = "{{ .comments }}"
+    commits = "{{ .commits }}"
+    created_at = "{{ .created_at }}"
+    deletions = "{{ .deletions }}"
+    labels = "{{ range .labels }}{{ .name }}{{ end }}"
+    locked = "{{ .locked }}"
+    mergeable = "{{ .mergeable }}"
+    merged = "{{ .merged }}"
+    merged_at = "{{ .merged_at }}"
+    merged_by = "{{ if .merged_by }}{{ user_data .merged_by.login }}{{ end }}"
+    number = "{{ .number }}"
+    state = "{{ .state }}"
+    title = "{{ .title }}"
+    updated_at = "{{ .updated_at }}"
+
+    [transformations.commit_comment_event]
+    action = "{{ .action }}"
     body = "{{ .comment.body }}"
     commit_id = "{{ .comment.commit_id }}"
-    sender = "{{ .sender.login }}"
+    sender = "{{ user_data .sender.login }}"
 
-    [transformations.fork]
+    [transformations.fork_event]
     forks = "{{ .repository.forks }}"
-    sender = "{{ .sender.login }}"
+    sender = "{{ user_data .sender.login }}"
 
-    [transformations.issue_comment]
-    _type = "{{ if .pull_request }}{{ .pull_request_comment }}{{ else }}{{ .issue_comment }}{{ end }}"
-    action = ""
+    [transformations.issue_comment_event]
+    _type = "{{ if .issue.pull_request }}pull_request_comment{{ else }}issue_comment{{ end }}"
+    action = "{{ .action }}"
     body = "{{ .comment.body }}"
-    labels = "{{ if .pull_request }}{{ .pull_request.labels }}{{else}}{{ .issue.labels }}{{ end }}"
-    number = "{{ if .pull_request }}{{ .pull_request.number }}{{ else }}{{ .issue.number }}{{ end }}"
-    sender = "{{ .sender.login }}"
+    number = "{{ if .issue.pull_request }}{{ .pull_request.number }}{{ else }}{{ .issue.number }}{{ end }}"
+    sender = "{{ user_data .sender.login }}"
 
-    [transformations.issues]
-    action = ""
-    assignee = "{{ .issue.assignee }}"
-    body = "{{ .issue.body }}"
-    closed_at = "{{ .issue.closed_at }}"
-    comments = "{{ .issue.comments }}"
-    created_at = "{{ .issue.created_at }}"
-    labels = "{{ .issue.labels }}"
-    locked = "{{ .issue.locked }}"
-    milestone = "{{ .issue.milestone }}"
+    [transformations.issues_event]
+    _snapshot_id = "number"
+    _snapshot_field = "item"
+    action = "{{ .action }}"
+    item = "{{ apply_transformation \"issue\" .issue }}"
     number = "{{ .issue.number }}"
-    sender = "{{ .sender.login }}"
-    state = "{{ .issue.state }}"
-    updated_at = "{{ .issue.updated_at }}"
+    sender = "{{ user_data .sender.login }}"
 
-    [transformations.pull_request_review_comment]
-    action = ""
+    [transformations.pull_request_review_comment_event]
+    action = "{{ .action }}"
     body = "{{ .comment.body }}"
     labels = "{{ .pull_request.labels }}"
     number = "{{ .pull_request.number }}"
-    sender = "{{ .sender.login }}"
+    sender = "{{ user_data .sender.login }}"
 
-    [transformations.pull_request]
-    action = ""
-    additions = "{{ .pull_request.additions }}"
-    body = "{{ .pull_request.body }}"
-    changed_files = "{{ .pull_request.changed_files }}"
-    closed_at = "{{ .pull_request.closed_at }}"
-    comments = "{{ .pull_request.comments }}"
-    commits = "{{ .pull_request.commits }}"
-    created_at = "{{ .pull_request.created_at }}"
-    deletions = "{{ .pull_request.deletions }}"
-    labels = "{{ .pull_request.labels }}"
-    locked = "{{ .pull_request.locked }}"
-    mergeable = "{{ .pull_request.mergeable }}"
-    merged = "{{ .pull_request.merged }}"
-    merged_at = "{{ .pull_request.merged_at }}"
-    merged_by = "{{ if .pull_request.merged_by }}{{ .pull_request.merged_by.login }} {{ end }}"
+    [transformations.pull_request_event]
+    _snapshot_id = "number"
+    _snapshot_field = "item"
+    action = "{{ .action }}"
+    item = "{{ apply_transformation \"pull_request\" .pull_request }}"
     number = "{{ .pull_request.number }}"
-    sender = "{{ .sender.login }}"
-    state = "{{ .pull_request.state }}"
-    title = "{{ .pull_request.title }}"
-    updated_at = "{{ .pull_request.updated_at }}"
+    sender = "{{ user_data .sender.login }}"
 
-    [transformations.watch]
-    sender = "{{ .sender.login }}"
+    [transformations.watch_event]
+    sender = "{{ user_data .sender.login }}"
     stargazers_count = "{{ .repository.stargazers_count }}"
