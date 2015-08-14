@@ -45,6 +45,7 @@ func doRunCommand(c *cli.Context) {
 			}
 		case <-time.After(nextTickTime):
 			lock.Lock() // Take a write lock, which pauses all queue processing.
+			log.Infof("Starting periodic sync")
 			runPeriodicSync(client, config)
 			nextTickTime = resetNextTickTime(config.PeriodicSync)
 			lock.Unlock()
@@ -75,11 +76,11 @@ func monitorQueues(queues []*Queue) <-chan struct{} {
 	wg := sync.WaitGroup{}
 	for _, q := range queues {
 		wg.Add(1)
-		go func() {
-			<-q.Consumer.StopChan
+		go func(queue *Queue) {
+			<-queue.Consumer.StopChan
 			log.Debug("Queue stop channel signaled")
 			wg.Done()
-		}()
+		}(q)
 	}
 
 	// Multiplex all queues exit into a single channel we can select on.
