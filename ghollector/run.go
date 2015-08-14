@@ -23,14 +23,15 @@ func doRunCommand(c *cli.Context) {
 	client := NewClient(config)
 
 	// Create and start monitoring queues.
-	queues := createQueues(client, config)
+	lock := sync.RWMutex{}
+	queues := createQueues(client, config, &lock)
 	stopChan := monitorQueues(queues)
 
 	// Graceful stop on SIGTERM and SIGINT.
 	s := make(chan os.Signal, 64)
 	signal.Notify(s, syscall.SIGTERM, syscall.SIGINT)
 
-	// Compute next tick time for the synchronization event.A
+	// Compute next tick time for the synchronization event.
 	nextTickTime := resetNextTickTime(config.PeriodicSync)
 	for {
 		select {
@@ -43,13 +44,15 @@ func doRunCommand(c *cli.Context) {
 				q.Consumer.Stop()
 			}
 		case <-time.After(nextTickTime):
+			lock.Lock() // Take a write lock, which pauses all queue processing.
 			runPeriodicSync(client, config)
 			nextTickTime = resetNextTickTime(config.PeriodicSync)
+			lock.Unlock()
 		}
 	}
 }
 
-func createQueues(client *github.Client, config *Config) []*Queue {
+func createQueues(client *github.Client, config *Config, lock *sync.RWMutex) []*Queue {
 	// Subscribe to the message queues for each repository.
 	queues := make([]*Queue, 0, len(config.Repositories))
 	for _, repo := range config.Repositories {
@@ -58,7 +61,7 @@ func createQueues(client *github.Client, config *Config) []*Queue {
 			Channel: config.NSQ.Channel,
 			Lookupd: config.NSQ.Lookupd,
 		}
-		queue, err := NewQueue(qconf, NewMessageHandler(client, config, repo))
+		queue, err := NewQueue(qconf, NewMessageHandler(client, config, repo, lock))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -105,6 +108,7 @@ func runPeriodicSync(client *github.Client, config *Config) {
 	// StoreCurrentState (which corresponds to our rolling storage).
 	syncOptions := DefaultSyncOptions
 	syncOptions.SleepPerPage = 10 // TODO Tired of getting blacklisted :-)
+	syncOptions.State = GithubStateFilterOpened
 	syncOptions.Storage = StoreCurrentState
 
 	// Create the blobStore and run the syncCommand.

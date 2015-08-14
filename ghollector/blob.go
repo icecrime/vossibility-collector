@@ -101,7 +101,7 @@ func (b *Blob) Snapshot() *Blob {
 	// The snapshot data is simply a sub-attribute of the blob data. Its id is
 	// a sub-attribute of the result, as identified by SnapshotId.
 	snapshot := b.Data.Get(b.SnapshotField)
-	snapshotId := fmt.Sprintf("%v", snapshot.GetPath(strings.Split(b.SnapshotId, ".")...))
+	snapshotId := fmt.Sprintf("%v", snapshot.GetPath(strings.Split(b.SnapshotId, ".")...).Interface())
 	return &Blob{
 		Data:      snapshot,
 		Id:        snapshotId,

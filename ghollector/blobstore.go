@@ -9,11 +9,6 @@ import (
 	"github.com/mattbaird/elastigo/core"
 )
 
-const (
-	// LabelsAttribute is the key in a GitHub payload for the labels.
-	LabelsAttribute = "labels"
-)
-
 // Storage is the target storage for an Index operation.
 type Storage int
 
@@ -64,7 +59,7 @@ type transformingBlobStore struct {
 // Index stores the blob into the specified storage under the provided id for
 // a given repository.
 func (b *transformingBlobStore) Index(storage Storage, repo *Repository, blob *Blob) error {
-	if trans := b.getTransformation(repo, blob.Type); trans != nil {
+	if trans := b.getTransformation(storage, repo, blob.Type); trans != nil {
 		t, err := trans.Apply(blob)
 		if err != nil {
 			return fmt.Errorf("applying transformation to event %q: %v", blob.Type, err)
@@ -76,7 +71,20 @@ func (b *transformingBlobStore) Index(storage Storage, repo *Repository, blob *B
 	return b.impl.Index(storage, repo, blob)
 }
 
-func (b *transformingBlobStore) getTransformation(repo *Repository, event string) *Transformation {
+func (b *transformingBlobStore) getTransformation(storage Storage, repo *Repository, event string) *Transformation {
+	// Live and snapshot data have overlapping types: we can received a
+	// "pull_request" live event for a new pull request being opened, as well
+	// as a "pull_request" snapshot during a sync operation.
+	//
+	// This is problematic, because different transformations have to be
+	// applies, which is why the storage type contributes to the transformation
+	// election.
+	if storage == StoreLiveEvent {
+		return repo.EventSet[event]
+	}
+
+	// This is not a live event: we have hardcoded transformations for the
+	// issues and pull requests data types.
 	switch event {
 	case GithubTypeIssue:
 		// [transformation.pull_request] is mandatory
@@ -85,9 +93,8 @@ func (b *transformingBlobStore) getTransformation(repo *Repository, event string
 		// [transformation.issue] is mandatory
 		return b.transformations[GithubTypePullRequest]
 	default:
-		// For arbitrary event type, we have to look into the configuration
-		// definition for the event set.
-		return repo.EventSet[event]
+		// No transformation for that event type.
+		return nil
 	}
 }
 
@@ -145,7 +152,7 @@ func (b *simpleBlobStore) Index(storage Storage, repo *Repository, blob *Blob) e
 
 func index(index string, blob *Blob) (api.BaseResponse, error) {
 	timestamp := blob.Timestamp.Format(time.RFC3339)
-	log.Warnf("Index [%s] add [%s] [%s] [%#v]\n", index, blob.Id, timestamp, *blob.Data)
+	//log.Warnf("Index [%s] add [%s] [%s] [%#v]\n", index, blob.Id, timestamp, *blob.Data)
 	return core.IndexWithParameters(
 		index, blob.Type, blob.Id,
 		"" /* parentId */, 0 /* version */, "" /* op_type */, "", /* routing */

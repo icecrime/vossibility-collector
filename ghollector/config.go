@@ -20,7 +20,7 @@ type RepositoryConfig struct {
 	Topic      string
 	StartIndex int `toml:"start_index"`
 
-	// events is kept internal: use the EventSet() function which properly
+	// events is kept internal: use the EventSetName() function which properly
 	// takes the DefaultEventSet into account.
 	events string `toml:"event_set"`
 }
@@ -69,9 +69,10 @@ func configFromFile(c *serializedConfig) *Config {
 	}
 	// Create repositories.
 	for name, config := range c.Repositories {
+		evt := config.EventSetName()
 		out.Repositories[name] = &Repository{
 			GivenName:        name,
-			EventSet:         out.EventSet[config.events],
+			EventSet:         out.EventSet[evt],
 			RepositoryConfig: &config,
 		}
 	}

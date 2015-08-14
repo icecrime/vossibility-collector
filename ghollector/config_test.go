@@ -1,63 +1,14 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"io/ioutil"
+	"os"
 	"testing"
-
-	"github.com/icecrime/vossibility/ghollector/template"
 )
 
-func TestApplyTransformation(t *testing.T) {
-	s := "./testdata/pull_request_event.json"
-	f, err := ioutil.ReadFile(s)
-	if err != nil {
-		t.Fatalf("failed to open file %q", s)
-	}
-
-	m := map[string]string{
-		"merged_by": "{{ if .pull_request.merged_by }}{{ .pull_request.merged_by.login }}{{ end }}",
-	}
-
-	tr, err := TransformationFromConfig("pull_request", m, template.FuncMap{})
-	if err != nil {
-		t.Fatalf("error creating transformation: %v", err)
-	}
-
-	r, err := tr.Apply(f)
-	if err != nil {
-		t.Fatalf("error applying transformation: %v", err)
-	}
-
-	fmt.Printf("%#v\n", r)
-	if m, err := r.Data.Map(); err == nil {
-		fmt.Printf("%#v\n", m)
-	}
-
-	/*
-		res, err := simplejson.NewJson(r.Data)
-		if err != nil {
-			t.Fatalf("error unserializing transformed result: %v", err)
-		}
-
-
-			for k, _ := range m {
-				var (
-					ok  bool
-					tmp *simplejson.Json = res
-				)
-				path := strings.Split(k, ".")
-				for _, p := range path {
-					if tmp, ok = tmp.CheckGet(p); !ok {
-						t.Fatalf("missing field %q in masked result", k)
-					}
-				}
-			}
-	*/
-}
-
 func TestApplyNestedTransformation(t *testing.T) {
-	s := "./testdata/pull_request_event.json"
+	s := "./testdata/pull_request_event_with_labels.json"
 	f, err := ioutil.ReadFile(s)
 	if err != nil {
 		t.Fatalf("failed to open file %q", s)
@@ -65,13 +16,19 @@ func TestApplyNestedTransformation(t *testing.T) {
 
 	m := map[string]map[string]string{
 		"nest": {
+			"labels":    "{{ range .labels }}{{ .name }}{{ end }}",
 			"merged_by": "{{ if .merged_by }}{{ .merged_by.login }}{{ end }}",
-			"number":    "",
+			"number":    "{{ .number }}",
 		},
 		"pull_request": {
-			"action": "",
+			"action": "{{ .action }}",
 			"item":   "{{ apply_transformation \"nest\" .pull_request }}",
 		},
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal(f, &data); err != nil {
+		t.Fatal(err)
 	}
 
 	tr, err := TransformationsFromConfig(m)
@@ -79,15 +36,12 @@ func TestApplyNestedTransformation(t *testing.T) {
 		t.Fatalf("error creating transformation: %v", err)
 	}
 
-	r, err := tr["pull_request"].Apply(f)
+	r, err := tr["pull_request"].ApplyMap(data)
 	if err != nil {
 		t.Fatalf("error applying transformation: %v", err)
 	}
 
-	fmt.Printf("%#v\n", r)
-	if m, err := r.Data.Map(); err == nil {
-		fmt.Printf("%#v\n", m)
-	}
+	json.NewEncoder(os.Stdout).Encode(r)
 
 	/*
 		res, err := simplejson.NewJson(r.Data)
