@@ -1,4 +1,4 @@
-elasticsearch = "localhost"
+elasticsearch = "elasticsearch"
 
 # A GitHub API token gives you more API request per hour.
 github_api_token = ""
@@ -15,6 +15,23 @@ sync_periodicity = "hourly"
 channel = "ghollector"
 lookupd = "lookupd:4161"
 
+
+# Mapping defines a list of field to exclude from Elastic Search analysis, such
+# as user and label names that we don't want to split.
+#
+# The `sync_mapping` command generates and posts this as a default mapping for
+# all repositories. You might want to manage this manually if there is some
+# other data in your Elastic Search cluster, or for more specific needs.
+
+[mapping]
+not_analyzed = [
+    "company",
+    "labels",
+    "login",
+    "milestone",
+    "*url"
+]
+
 # List of repositories to monitor. For each repository:
 #   - user: Github user name
 #   - repo: Github repository name
@@ -29,10 +46,10 @@ lookupd = "lookupd:4161"
     topic = "hooks-docker"
     start_index = 8000 # We don't expect anything relevant to move before
 
-    [repositories.swarm]
-    user = "docker"
-    repo = "docker"
-    queue = "hooks-swarm"
+    # [repositories.swarm]
+    # user = "docker"
+    # repo = "docker"
+    # queue = "hooks-swarm"
 
 # Event sets definition: each set defines a list of events to subscribe to, and
 # are referenced by repositories definitions. In an event set definition, each
@@ -65,8 +82,8 @@ lookupd = "lookupd:4161"
 
 [transformations]
 
-    # The "issues" transformation is required as Issues are always stored.
-    [transformations.issues]
+    # The "issue" transformation is required as Issues are always stored.
+    [transformations.issue]
     assignee = "{{ .assignee }}"
     author = "{{ user_data .user.login }}"
     body = "{{ .body }}"
@@ -75,7 +92,7 @@ lookupd = "lookupd:4161"
     created_at = "{{ .created_at }}"
     labels = "{{ range .labels }}{{ .name }}{{ end }}"
     locked = "{{ .locked }}"
-    milestone = "{{ .milestone }}"
+    milestone = "{{ if .milestone }}{{ .milestone.title }}{{end}}"
     number = "{{ .number }}"
     state = "{{ .state }}"
     updated_at = "{{ .updated_at }}"
@@ -117,10 +134,11 @@ lookupd = "lookupd:4161"
     _type = "{{ if .issue.pull_request }}pull_request_comment{{ else }}issue_comment{{ end }}"
     action = "{{ .action }}"
     body = "{{ .comment.body }}"
-    number = "{{ if .issue.pull_request }}{{ .pull_request.number }}{{ else }}{{ .issue.number }}{{ end }}"
+    number = "{{ if .issue.pull_request }}{{ .issue.pull_request.number }}{{ else }}{{ .issue.number }}{{ end }}"
     sender = "{{ user_data .sender.login }}"
 
     [transformations.issues_event]
+    _type = "issue"
     _snapshot_id = "number"
     _snapshot_field = "item"
     action = "{{ .action }}"
