@@ -1,6 +1,9 @@
 package main
 
 import (
+	"encoding/json"
+	"os"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/mattbaird/elastigo/api"
@@ -21,25 +24,27 @@ type templateProto struct {
 }
 
 func makeTemplate(pattern string, dynamicTemplates []mappingProto) map[string]interface{} {
-	return map[string]interface{}{
-		"template": pattern,
+	return mappingProto{
+		"template": pattern + "*",
 		"order":    1,
-		"mappings": map[string]interface{}{
-			"_default_": map[string]interface{}{
-				"enabled": true,
-				"store":   true,
+		"mappings": mappingProto{
+			"_default_": mappingProto{
+				"_timestamp": mappingProto{
+					"enabled": true,
+					"store":   true,
+				},
+				"dynamic_templates": dynamicTemplates,
 			},
-			"dynamic_templates": dynamicTemplates,
 		},
 	}
 }
 
 func notAnalyzedStringProto(pattern string) mappingProto {
-	return map[string]interface{}{
-		pattern: map[string]interface{}{
-			"path_patch":         pattern,
+	return mappingProto{
+		pattern: mappingProto{
+			"match":              pattern,
 			"match_mapping_type": "string",
-			"mapping": map[string]interface{}{
+			"mapping": mappingProto{
 				"index": "not_analyzed",
 				"type":  "string",
 			},
@@ -59,7 +64,8 @@ func doSyncMapping(c *cli.Context) {
 
 	for _, r := range config.Repositories {
 		template := makeTemplate(r.IndexPrefix(), notAnalyzedProtos)
-		if _, err := api.DoCommand("put", "/_template/ghollector", nil, template); err != nil {
+		json.NewEncoder(os.Stdout).Encode(template)
+		if _, err := api.DoCommand("PUT", "/_template/ghollector", nil, template); err != nil {
 			log.Fatal(err)
 		}
 	}
