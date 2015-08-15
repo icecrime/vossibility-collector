@@ -151,7 +151,8 @@ func (b *simpleBlobStore) Index(storage Storage, repo *Repository, blob *Blob) e
 }
 
 func index(index string, blob *Blob) (api.BaseResponse, error) {
-	timestamp := blob.Timestamp.Format(time.RFC3339)
+	// Apparently Elastic Search don't like timezone specifiers other than Z.
+	timestamp := blob.Timestamp.UTC().Format(time.RFC3339)
 	//log.Warnf("Index [%s] add [%s] [%s] [%#v]\n", index, blob.ID, timestamp, *blob.Data)
 	return core.IndexWithParameters(
 		index, blob.Type, blob.ID,
