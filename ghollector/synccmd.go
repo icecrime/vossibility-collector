@@ -48,7 +48,7 @@ const (
 	// job.
 	DefaultStorage = StoreSnapshot
 
-	// DefaultStateFilter is the default filtering mode for retrieving issues.
+	// DefaultFilterMode is the default filtering mode for retrieving issues.
 	DefaultFilterMode = GithubStateFilterOpened
 )
 
@@ -245,14 +245,14 @@ func (s *syncCmd) indexingProc(r *Repository) {
 		// Github data rather than rely on the typed go-github package.
 		payload, err := json.Marshal(i)
 		if err != nil {
-			log.Errorf("error marshaling githubIndexedItem %q (%s): %v", i.Id(), i.Type(), err)
+			log.Errorf("error marshaling githubIndexedItem %q (%s): %v", i.ID(), i.Type(), err)
 			continue
 		}
 		// We create a blob from the payload, which essentially deserialized
 		// the object back from JSON...
-		b, err := NewBlobFromPayload(i.Type(), i.Id(), payload)
+		b, err := NewBlobFromPayload(i.Type(), i.ID(), payload)
 		if err != nil {
-			log.Errorf("creating blob from payload %q (%s): %v", i.Id(), i.Type(), err)
+			log.Errorf("creating blob from payload %q (%s): %v", i.ID(), i.Type(), err)
 			continue
 		}
 		// Persist the object in Elastic Search.

@@ -35,23 +35,25 @@ func (r RepositoryConfig) EventSetName() string {
 
 // Config is the global configuration for the tool.
 type Config struct {
-	ElasticSearch   string
-	GithubApiToken  string
-	PeriodicSync    PeriodicSync
-	NSQ             NSQConfig
-	Repositories    map[string]*Repository
-	EventSet        map[string]EventSet
-	Transformations Transformations
+	ElasticSearch       string
+	GithubAPIToken      string
+	PeriodicSync        PeriodicSync
+	NSQ                 NSQConfig
+	NotAnalyzedPatterns []string
+	Repositories        map[string]*Repository
+	EventSet            map[string]EventSet
+	Transformations     Transformations
 }
 
 // configFromFile creates a Config object from its serialized counterpart.
 func configFromFile(c *serializedConfig) *Config {
 	out := &Config{
-		ElasticSearch:  c.ElasticSearch,
-		GithubApiToken: c.GithubApiToken,
-		NSQ:            c.NSQ,
-		EventSet:       make(map[string]EventSet),
-		Repositories:   make(map[string]*Repository),
+		ElasticSearch:       c.ElasticSearch,
+		GithubAPIToken:      c.GithubAPIToken,
+		NSQ:                 c.NSQ,
+		NotAnalyzedPatterns: c.Mapping[MappingNotAnalyzedKey],
+		EventSet:            make(map[string]EventSet),
+		Repositories:        make(map[string]*Repository),
 	}
 	// Create transformations.
 	t, err := TransformationsFromConfig(c.Transformations)
@@ -103,11 +105,11 @@ func ParseConfig(filename string) (*Config, error) {
 
 // ParseConfigOrDie returns a Config object from the requested filename and
 // exits in case of error.
-func ParseConfigOrDie(filename string) *Config {
-	if c, err := ParseConfig(filename); err == nil {
+func ParseConfigOrDie(filename string) (c *Config) {
+	var err error
+	if c, err = ParseConfig(filename); err == nil {
 		return c
-	} else {
-		log.Fatalf("failed to load configuration file %q: %v", filename, err)
 	}
+	log.Fatalf("failed to load configuration file %q: %v", filename, err)
 	return nil
 }

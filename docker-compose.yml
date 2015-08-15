@@ -1,7 +1,7 @@
 # Elastic Search server is used for storing all of GitHub webhook data for the
 # monitored repositories.
 elasticsearch:
-    image: elasticsearch:1.6.0
+    image: elasticsearch:1.7.1
     volumes:
         - ./volumes/elasticsearch:/usr/share/elasticsearch/data/
 

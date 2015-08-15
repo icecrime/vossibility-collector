@@ -2,12 +2,19 @@ package main
 
 import "fmt"
 
+const (
+	// MappingNotAnalyzedKey is the key for the patterns to exclude from
+	// Elastic Search analysis.
+	MappingNotAnalyzedKey = "not_analyzed"
+)
+
 // serializedConfig is the serialize version of the configuration.
 type serializedConfig struct {
 	ElasticSearch   string
-	GithubApiToken  string `toml:"github_api_token"`
+	GithubAPIToken  string `toml:"github_api_token"`
 	PeriodicSync    string `toml:"sync_periodicity"`
 	NSQ             NSQConfig
+	Mapping         map[string][]string
 	Repositories    map[string]RepositoryConfig
 	EventSet        map[string]map[string]string `toml:"event_set"`
 	Transformations map[string]map[string]string
@@ -66,10 +73,10 @@ func (c *serializedConfig) verifyTransformations() error {
 	// Transformations should have either none or both of the snapshot
 	// metadata fields.
 	for name, t := range c.Transformations {
-		_, hasSnapshotId := t[MetadataSnapshotId]
+		_, hasSnapshotID := t[MetadataSnapshotID]
 		_, hasSnapshotField := t[MetadataSnapshotField]
-		if hasSnapshotId != hasSnapshotField {
-			return fmt.Errorf("transformation %q should have either none of both attributes %q and %q", name, MetadataSnapshotId, MetadataSnapshotField)
+		if hasSnapshotID != hasSnapshotField {
+			return fmt.Errorf("transformation %q should have either none of both attributes %q and %q", name, MetadataSnapshotID, MetadataSnapshotField)
 		}
 	}
 	return nil

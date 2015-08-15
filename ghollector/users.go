@@ -9,10 +9,10 @@ import (
 	"github.com/mattbaird/elastigo/core"
 )
 
-var updateUsersCommand = cli.Command{
-	Name:   "update_users",
-	Usage:  "update the user store with the information from a file",
-	Action: doUpdateUsers,
+var syncUsersCommand = cli.Command{
+	Name:   "sync_users",
+	Usage:  "sync the user store with the information from a file",
+	Action: doSyncUsers,
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "f, file",
@@ -22,9 +22,9 @@ var updateUsersCommand = cli.Command{
 	},
 }
 
-// doUpdateUsers synchronize the content of the specified user file with the
+// doSyncUsers synchronize the content of the specified user file with the
 // Elastic Search backend.
-func doUpdateUsers(c *cli.Context) {
+func doSyncUsers(c *cli.Context) {
 	_ = ParseConfigOrDie(c.GlobalString("config"))
 
 	var userData map[string]UserData

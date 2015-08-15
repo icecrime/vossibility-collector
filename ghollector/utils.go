@@ -22,13 +22,13 @@ type partialMessage struct {
 type githubPagedIndexer func(page int) ([]githubIndexedItem, *github.Response, error)
 
 type githubIndexedItem interface {
-	Id() string
+	ID() string
 	Type() string
 }
 
 type githubPR github.PullRequest
 
-func (g githubPR) Id() string {
+func (g githubPR) ID() string {
 	return strconv.Itoa(*g.Number)
 }
 
@@ -38,7 +38,7 @@ func (g githubPR) Type() string {
 
 type githubIssue github.Issue
 
-func (g githubIssue) Id() string {
+func (g githubIssue) ID() string {
 	return strconv.Itoa(*g.Number)
 }
 
@@ -51,7 +51,7 @@ type githubEnrichedPR struct {
 	Labels []github.Label `json:"labels,omitempty"`
 }
 
-func (g *githubEnrichedPR) Id() string {
+func (g *githubEnrichedPR) ID() string {
 	return strconv.Itoa(*g.PullRequest.Number)
 }
 

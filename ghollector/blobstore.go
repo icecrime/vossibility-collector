@@ -117,9 +117,9 @@ func (b *simpleBlobStore) Index(storage Storage, repo *Repository, blob *Blob) e
 	// When storing a live event, we always update the next two indices.
 	case StoreLiveEvent:
 		liveIndex := repo.LiveIndexForTimestamp(blob.Timestamp)
-		log.Debugf("store live event to %s/%s/%s", liveIndex, blob.Type, blob.Id)
+		log.Debugf("store live event to %s/%s/%s", liveIndex, blob.Type, blob.ID)
 		if _, err := index(liveIndex, blob); err != nil {
-			return fmt.Errorf("store live event %s data: %v", blob.Id, err)
+			return fmt.Errorf("store live event %s data: %v", blob.ID, err)
 		}
 		// Before falling through, replace the blob with the snapshot data from
 		// the event, if any.
@@ -134,17 +134,17 @@ func (b *simpleBlobStore) Index(storage Storage, repo *Repository, blob *Blob) e
 	// When storing a current state, we always update the next index.
 	case StoreCurrentState:
 		stateIndex := repo.StateIndexForTimestamp(blob.Timestamp)
-		log.Debugf("store current state to %s/%s/%s", stateIndex, blob.Type, blob.Id)
+		log.Debugf("store current state to %s/%s/%s", stateIndex, blob.Type, blob.ID)
 		if _, err := index(stateIndex, blob); err != nil {
-			return fmt.Errorf("store current state %s data: %v", blob.Id, err)
+			return fmt.Errorf("store current state %s data: %v", blob.ID, err)
 		}
 		fallthrough
 	// Snapshot is an index containing the last version of all items, opened or
 	// closed.
 	case StoreSnapshot:
-		log.Debugf("store snapshot to %s/%s/%s", repo.SnapshotIndex(), blob.Type, blob.Id)
+		log.Debugf("store snapshot to %s/%s/%s", repo.SnapshotIndex(), blob.Type, blob.ID)
 		if _, err := index(repo.SnapshotIndex(), blob); err != nil {
-			return fmt.Errorf("store snapshot %s data: %v", blob.Id, err)
+			return fmt.Errorf("store snapshot %s data: %v", blob.ID, err)
 		}
 	}
 	return nil
@@ -152,9 +152,9 @@ func (b *simpleBlobStore) Index(storage Storage, repo *Repository, blob *Blob) e
 
 func index(index string, blob *Blob) (api.BaseResponse, error) {
 	timestamp := blob.Timestamp.Format(time.RFC3339)
-	//log.Warnf("Index [%s] add [%s] [%s] [%#v]\n", index, blob.Id, timestamp, *blob.Data)
+	//log.Warnf("Index [%s] add [%s] [%s] [%#v]\n", index, blob.ID, timestamp, *blob.Data)
 	return core.IndexWithParameters(
-		index, blob.Type, blob.Id,
+		index, blob.Type, blob.ID,
 		"" /* parentId */, 0 /* version */, "" /* op_type */, "", /* routing */
 		timestamp,
 		0 /* ttl */, "" /* percolate */, "" /* timeout */, false /* refresh */, map[string]interface{}{}, /* args */

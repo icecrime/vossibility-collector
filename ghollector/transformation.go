@@ -108,7 +108,7 @@ func (t Transformation) Apply(b *Blob) (*Blob, error) {
 	}
 
 	// Create the result blob, but inherit from the parent's metadata.
-	res := NewBlob(b.Type, b.Id)
+	res := NewBlob(b.Type, b.ID)
 	res.Timestamp = b.Timestamp
 
 	// For each destination field defined in the transformation, apply the

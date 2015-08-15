@@ -34,7 +34,8 @@ func main() {
 		limitsCommand,
 		runCommand,
 		syncCommand,
-		updateUsersCommand,
+		syncMappingCommand,
+		syncUsersCommand,
 	}
 
 	app.Before = func(c *cli.Context) error {

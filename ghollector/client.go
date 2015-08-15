@@ -9,9 +9,9 @@ import (
 
 func NewClient(config *Config) *gh.Client {
 	var tc *http.Client
-	if config.GithubApiToken != "" {
+	if config.GithubAPIToken != "" {
 		ts := oauth2.StaticTokenSource(&oauth2.Token{
-			AccessToken: config.GithubApiToken,
+			AccessToken: config.GithubAPIToken,
 		})
 		tc = oauth2.NewClient(oauth2.NoContext, ts)
 	}

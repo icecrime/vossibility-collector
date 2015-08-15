@@ -84,7 +84,7 @@ func (m *MessageHandler) prepareForStorage(o *Blob) error {
 	log.Debugf("fetching labels for %s #%d", m.repo.PrettyName(), number)
 	l, _, err := m.client.Issues.ListLabelsByIssue(m.repo.User, m.repo.Repo, number, &github.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("retrieve labels for issue %s: %v", number, err)
+		return fmt.Errorf("retrieve labels for issue %d: %v", number, err)
 	}
 
 	// TODO This is terrible

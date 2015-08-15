@@ -13,11 +13,11 @@ const (
 	// storing a Blob instance into the Elastic Search backend.
 	MetadataType = "_type"
 
-	// MetadataSnapshotId is the key for the snapshot id metadata attribute
+	// MetadataSnapshotID is the key for the snapshot id metadata attribute
 	// used when storing a Blob instance into the Elastic Search backend. It
 	// represents the Id to be used when storing the snapshoted content of a
 	// blob.
-	MetadataSnapshotId = "_snapshot_id"
+	MetadataSnapshotID = "_snapshot_id"
 
 	// MetadataSnapshotField is the key for the snapshot id metadata attribute
 	// used when storing a Blob instance into the Elastic Search backend. It
@@ -31,12 +31,12 @@ type Blob struct {
 	// Data is the payload content.
 	Data *simplejson.Json
 
-	// Id sets the blob primary key in the Elastic Search store.
-	Id string
+	// ID sets the blob primary key in the Elastic Search store.
+	ID string
 
-	// SnapshotId identifies the field of the snapshotted data that should be
+	// SnapshotID identifies the field of the snapshotted data that should be
 	// used as the snapshot Id.
-	SnapshotId string
+	SnapshotID string
 
 	// SnapshotField identifies the field of the blob data that should be
 	// extracted and used as a snapshot.
@@ -53,13 +53,13 @@ type Blob struct {
 
 // NewBlob returns an empty Blob for that particular event type and id.
 func NewBlob(event, id string) *Blob {
-	return NewBlobFromJson(event, id, simplejson.New())
+	return NewBlobFromJSON(event, id, simplejson.New())
 }
 
-func NewBlobFromJson(event, id string, json *simplejson.Json) *Blob {
+func NewBlobFromJSON(event, id string, json *simplejson.Json) *Blob {
 	return &Blob{
 		Data:      json,
-		Id:        id,
+		ID:        id,
 		Timestamp: time.Now(),
 		Type:      event,
 	}
@@ -70,7 +70,7 @@ func NewBlobFromPayload(event, id string, payload []byte) (*Blob, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewBlobFromJson(event, id, d), nil
+	return NewBlobFromJSON(event, id, d), nil
 }
 
 func (b *Blob) Encode() ([]byte, error) {
@@ -91,20 +91,20 @@ func (b *Blob) Push(key string, value interface{}) error {
 	return nil
 }
 
-// Snapshot returns the Id and Data for the snapshot for a Blob that models a
+// Snapshot returns the ID and Data for the snapshot for a Blob that models a
 // live event.
 func (b *Blob) Snapshot() *Blob {
-	if b.SnapshotId == "" || b.SnapshotField == "" {
+	if b.SnapshotID == "" || b.SnapshotField == "" {
 		return nil
 	}
 
 	// The snapshot data is simply a sub-attribute of the blob data. Its id is
-	// a sub-attribute of the result, as identified by SnapshotId.
+	// a sub-attribute of the result, as identified by SnapshotID.
 	snapshot := b.Data.Get(b.SnapshotField)
-	snapshotId := fmt.Sprintf("%v", snapshot.GetPath(strings.Split(b.SnapshotId, ".")...).Interface())
+	snapshotID := fmt.Sprintf("%v", snapshot.GetPath(strings.Split(b.SnapshotID, ".")...).Interface())
 	return &Blob{
 		Data:      snapshot,
-		Id:        snapshotId,
+		ID:        snapshotID,
 		Timestamp: b.Timestamp,
 		Type:      b.Type,
 	}
@@ -113,7 +113,7 @@ func (b *Blob) Snapshot() *Blob {
 func (b *Blob) pushSpecialAttribute(key string, value interface{}) error {
 	metaFields := map[string]*string{
 		MetadataType:          &b.Type,
-		MetadataSnapshotId:    &b.SnapshotId,
+		MetadataSnapshotID:    &b.SnapshotID,
 		MetadataSnapshotField: &b.SnapshotField,
 	}
 	if target, ok := metaFields[key]; !ok {
