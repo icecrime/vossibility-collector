@@ -18,6 +18,16 @@ type Repository struct {
 	EventSet  EventSet
 }
 
+// periodFormat returns the string representation of a timestamp to be used in
+// the time-based indices.
+func periodFormat(timestamp time.Time) string {
+	// Notices the UTC here: it's a bit counterintuitive for the user (because
+	// you end up potentially seeing indices names in the future), but that's
+	// how Kibana and ES work.
+	// Reference: https://groups.google.com/forum/#!topic/logstash-users/_sdJNWJ4_5g
+	return timestamp.UTC().Format("2006.01.02-15")
+}
+
 // IndexPrefix returns the string that prefixes all Elastic Search indices for
 // this repository data.
 func (r *Repository) IndexPrefix() string {
@@ -33,8 +43,7 @@ func (r *Repository) LiveIndex() string {
 // LiveIndexForTimestamp returns the current Elastic Search index appropriate
 // to store this repository's events with the specified timestamp.
 func (r *Repository) LiveIndexForTimestamp(timestamp time.Time) string {
-	period := timestamp.Format("2006.01.02-15")
-	return fmt.Sprintf("%slive-%s", r.IndexPrefix(), period)
+	return fmt.Sprintf("%slive-%s", r.IndexPrefix(), periodFormat(timestamp))
 }
 
 // StateIndex returns the current Elastic Search index appropriate to store
@@ -46,8 +55,7 @@ func (r *Repository) StateIndex() string {
 // StateIndexForTimestamp returns the Elastic Search index appropriate to store
 // an object with the specified timestamp.
 func (r *Repository) StateIndexForTimestamp(timestamp time.Time) string {
-	period := timestamp.Format("2006.01.02-15")
-	return fmt.Sprintf("%sstate-%s", r.IndexPrefix(), period)
+	return fmt.Sprintf("%sstate-%s", r.IndexPrefix(), periodFormat(timestamp))
 }
 
 // SnapshotIndex returns the current Elastic Search index appropriate to store
