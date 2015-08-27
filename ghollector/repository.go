@@ -20,12 +20,24 @@ type Repository struct {
 
 // periodFormat returns the string representation of a timestamp to be used in
 // the time-based indices.
-func periodFormat(timestamp time.Time) string {
+func periodFormat(timestamp time.Time, format string) string {
 	// Notices the UTC here: it's a bit counterintuitive for the user (because
 	// you end up potentially seeing indices names in the future), but that's
 	// how Kibana and ES work.
 	// Reference: https://groups.google.com/forum/#!topic/logstash-users/_sdJNWJ4_5g
-	return timestamp.UTC().Format("2006.01.02-15")
+	return timestamp.UTC().Format(format)
+}
+
+// monthlyPeriodFormat returns the string representation of a timestamp to be
+// used in an hourly time-based indices.
+func monthlyPeriodFormat(timestamp time.Time) string {
+	return periodFormat(timestamp, "2006.01")
+}
+
+// hourlyPeriodFormat returns the string representation of a timestamp to be
+// used in an hourly time-based indices.
+func hourlyPeriodFormat(timestamp time.Time) string {
+	return periodFormat(timestamp, "2006.01.02-15")
 }
 
 // IndexPrefix returns the string that prefixes all Elastic Search indices for
@@ -43,7 +55,7 @@ func (r *Repository) LiveIndex() string {
 // LiveIndexForTimestamp returns the current Elastic Search index appropriate
 // to store this repository's events with the specified timestamp.
 func (r *Repository) LiveIndexForTimestamp(timestamp time.Time) string {
-	return fmt.Sprintf("%slive-%s", r.IndexPrefix(), periodFormat(timestamp))
+	return fmt.Sprintf("%slive-%s", r.IndexPrefix(), monthlyPeriodFormat(timestamp))
 }
 
 // StateIndex returns the current Elastic Search index appropriate to store
@@ -55,7 +67,7 @@ func (r *Repository) StateIndex() string {
 // StateIndexForTimestamp returns the Elastic Search index appropriate to store
 // an object with the specified timestamp.
 func (r *Repository) StateIndexForTimestamp(timestamp time.Time) string {
-	return fmt.Sprintf("%sstate-%s", r.IndexPrefix(), periodFormat(timestamp))
+	return fmt.Sprintf("%sstate-%s", r.IndexPrefix(), hourlyPeriodFormat(timestamp))
 }
 
 // SnapshotIndex returns the current Elastic Search index appropriate to store
