@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/icecrime/vossibility/ghollector/template"
+	"github.com/icecrime/template"
 )
 
 type visitor struct {

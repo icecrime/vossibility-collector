@@ -10,8 +10,8 @@ import (
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "ghollector"
-	app.Usage = "collect Github repository statistics"
+	app.Name = "vossibility-collector"
+	app.Usage = "collect Github repository data"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "c, config",

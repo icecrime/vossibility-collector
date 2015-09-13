@@ -1,2 +1,0 @@
-# vossibility
-Open Source visibility

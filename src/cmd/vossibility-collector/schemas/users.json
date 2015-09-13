@@ -1,0 +1,14 @@
+{
+    "user": {
+        "properties": {
+            "login": {
+                "type": "string",
+                "index": "not_analyzed"
+            },
+            "login.company": {
+                "type": "string",
+                "index": "not_analyzed"
+            }
+        }
+    }
+}

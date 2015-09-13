@@ -65,7 +65,7 @@ func doSyncMapping(c *cli.Context) {
 	for _, r := range config.Repositories {
 		template := makeTemplate(r.IndexPrefix(), notAnalyzedProtos)
 		json.NewEncoder(os.Stdout).Encode(template)
-		if _, err := api.DoCommand("PUT", "/_template/ghollector", nil, template); err != nil {
+		if _, err := api.DoCommand("PUT", "/_template/vossibility", nil, template); err != nil {
 			log.Fatal(err)
 		}
 	}
