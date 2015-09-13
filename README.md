@@ -30,7 +30,6 @@ VERSION:
    0.0.0
    
 COMMANDS:
-   init         initialized elasticsearch indices
    limits       get information about your GitHub API rate limits
    run          listen and process Github events
    sync         sync storage with the Github repositories
