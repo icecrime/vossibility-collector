@@ -17,6 +17,35 @@ build dashboards for your project: a basic example of what can be achieved is sh
 
 ![Sample dashboard](https://github.com/icecrime/vossibility-collector/raw/master/resources/dashboard.png)
 
+# Usage
+
+```
+NAME:
+   vossibility-collector - collect Github repository data
+
+USAGE:
+   vossibility-collector [global options] command [command options] [arguments...]
+   
+VERSION:
+   0.0.0
+   
+COMMANDS:
+   init         initialized elasticsearch indices
+   limits       get information about your GitHub API rate limits
+   run          listen and process Github events
+   sync         sync storage with the Github repositories
+   sync_mapping sync the configuration definition with the store mappings
+   sync_users   sync the user store with the information from a file
+   help, h      Shows a list of commands or help for one command
+   
+GLOBAL OPTIONS:
+   -c, --config "config.toml"   configuration file
+   --debug                      enable debug output
+   --debug-es                   enable debug output for elasticsearch queries
+   --help, -h                   show help
+   --version, -v                print the version
+```
+
 # Configuration
 
 Because different project may want to track different data, and that volumetry on [high activity
