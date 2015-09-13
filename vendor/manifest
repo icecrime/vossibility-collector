@@ -1,0 +1,132 @@
+{
+	"version": 0,
+	"dependencies": [
+		{
+			"importpath": "github.com/BurntSushi/toml",
+			"repository": "https://github.com/BurntSushi/toml",
+			"revision": "056c9bc7be7190eaa7715723883caffa5f8fa3e4",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/Sirupsen/logrus",
+			"repository": "https://github.com/Sirupsen/logrus",
+			"revision": "418b41d23a1bf978c06faea5313ba194650ac088",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/bitly/go-hostpool",
+			"repository": "https://github.com/bitly/go-hostpool",
+			"revision": "d0e59c22a56e8dadfed24f74f452cea5a52722d2",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/bitly/go-nsq",
+			"repository": "https://github.com/bitly/go-nsq",
+			"revision": "8a3b2faefb03218f8b4af9d40f27db1fc8015fad",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/bitly/go-simplejson",
+			"repository": "https://github.com/bitly/go-simplejson",
+			"revision": "18db6e68d8fd9cbf2e8ebe4c81a78b96fd9bf05a",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/bugsnag/bugsnag-go",
+			"repository": "https://github.com/bugsnag/bugsnag-go",
+			"revision": "9ee24c1db7e2c5b87e7228acb3e587a35124a041",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/bugsnag/osext",
+			"repository": "https://github.com/bugsnag/osext",
+			"revision": "0dd3f918b21bec95ace9dc86c7e70266cfc5c702",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/bugsnag/panicwrap",
+			"repository": "https://github.com/bugsnag/panicwrap",
+			"revision": "e5f9854865b9778a45169fc249e99e338d4d6f27",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/codegangsta/cli",
+			"repository": "https://github.com/codegangsta/cli",
+			"revision": "a65b733b303f0055f8d324d805f393cd3e7a7904",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/getsentry/raven-go",
+			"repository": "https://github.com/getsentry/raven-go",
+			"revision": "74c334d7b8aaa4fd1b4fc6aa428c36fed1699e28",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/google/go-github/github",
+			"repository": "https://github.com/google/go-github",
+			"revision": "7277108aa3e8823e0e028f6c74aea2f4ce4a1b5a",
+			"branch": "master",
+			"path": "/github"
+		},
+		{
+			"importpath": "github.com/google/go-querystring/query",
+			"repository": "https://github.com/google/go-querystring",
+			"revision": "547ef5ac979778feb2f760cdb5f4eae1a2207b86",
+			"branch": "master",
+			"path": "/query"
+		},
+		{
+			"importpath": "github.com/mattbaird/elastigo/api",
+			"repository": "https://github.com/mattbaird/elastigo",
+			"revision": "0c98885a2b2575c99882263dfc4bf6aae9079a63",
+			"branch": "HEAD",
+			"path": "/api"
+		},
+		{
+			"importpath": "github.com/mattbaird/elastigo/core",
+			"repository": "https://github.com/mattbaird/elastigo",
+			"revision": "0c98885a2b2575c99882263dfc4bf6aae9079a63",
+			"branch": "HEAD",
+			"path": "/core"
+		},
+		{
+			"importpath": "github.com/mreiferson/go-snappystream",
+			"repository": "https://github.com/mreiferson/go-snappystream",
+			"revision": "028eae7ab5c4c9e2d1cb4c4ca1e53259bbe7e504",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/tobi/airbrake-go",
+			"repository": "https://github.com/tobi/airbrake-go",
+			"revision": "5b5e269e1bc398d43f67e43dafff3414a59cd5a2",
+			"branch": "master"
+		},
+		{
+			"importpath": "golang.org/x/net/context",
+			"repository": "https://go.googlesource.com/net",
+			"revision": "db8e4de5b2d6653f66aea53094624468caad15d2",
+			"branch": "master",
+			"path": "/context"
+		},
+		{
+			"importpath": "golang.org/x/oauth2",
+			"repository": "https://go.googlesource.com/oauth2",
+			"revision": "ad0128250e8fba646a92ca9129716e523d63ef9f",
+			"branch": "master"
+		},
+		{
+			"importpath": "google.golang.org/cloud/compute/metadata",
+			"repository": "https://code.googlesource.com/gocloud",
+			"revision": "a128c777c40402d8b287fcd0a614f80c4ee4f7b5",
+			"branch": "master",
+			"path": "/compute/metadata"
+		},
+		{
+			"importpath": "google.golang.org/cloud/internal",
+			"repository": "https://code.googlesource.com/gocloud",
+			"revision": "a128c777c40402d8b287fcd0a614f80c4ee4f7b5",
+			"branch": "master",
+			"path": "/internal"
+		}
+	]
+}
