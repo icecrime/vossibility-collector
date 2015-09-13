@@ -27,7 +27,7 @@ USAGE:
    vossibility-collector [global options] command [command options] [arguments...]
    
 VERSION:
-   0.0.0
+   0.1.0
    
 COMMANDS:
    limits       get information about your GitHub API rate limits
