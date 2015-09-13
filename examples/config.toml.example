@@ -15,7 +15,6 @@ sync_periodicity = "hourly"
 channel = "ghollector"
 lookupd = "lookupd:4161"
 
-
 # Mapping defines a list of field to exclude from Elastic Search analysis, such
 # as user and label names that we don't want to split.
 #
