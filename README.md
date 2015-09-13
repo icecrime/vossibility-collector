@@ -132,7 +132,7 @@ of the standard [`text/template`](http://golang.org/pkg/text/template/) Go packa
 to use the standard Go template DSL to describe your data mapping (think of it as a text-based API
 for runtime reflection).
 
-#### Transformatione example
+#### Transformation example
 
 Let's take a concrete example:
 
