@@ -1,9 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"os"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/mattbaird/elastigo/api"
@@ -64,7 +61,6 @@ func doSyncMapping(c *cli.Context) {
 
 	for _, r := range config.Repositories {
 		template := makeTemplate(r.IndexPrefix(), notAnalyzedProtos)
-		json.NewEncoder(os.Stdout).Encode(template)
 		if _, err := api.DoCommand("PUT", "/_template/vossibility", nil, template); err != nil {
 			log.Fatal(err)
 		}
