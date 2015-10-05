@@ -100,7 +100,7 @@ func ParseConfig(filename string) (*Config, error) {
 	}
 
 	// Configure the Elastic Search client library once and for all.
-	api.Domain = config.ElasticSearch
+	api.Hosts = append(api.Hosts, config.ElasticSearch)
 	return configFromFile(&config), nil
 }
 
