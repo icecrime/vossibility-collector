@@ -47,8 +47,8 @@ not_analyzed = [
 
     # [repositories.swarm]
     # user = "docker"
-    # repo = "docker"
-    # queue = "hooks-swarm"
+    # repo = "swarm"
+    # topic = "hooks-swarm"
 
 # Event sets definition: each set defines a list of events to subscribe to, and
 # are referenced by repositories definitions. In an event set definition, each
