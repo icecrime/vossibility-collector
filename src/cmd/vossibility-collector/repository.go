@@ -14,8 +14,9 @@ import (
 //	- Current state in a single 'givenname_user-repo_snapshot' index
 type Repository struct {
 	*RepositoryConfig
-	GivenName string
-	EventSet  EventSet
+	GivenName    string
+	EventSet     EventSet
+	PeriodicSync PeriodicSync
 }
 
 // periodFormat returns the string representation of a timestamp to be used in
@@ -26,6 +27,12 @@ func periodFormat(timestamp time.Time, format string) string {
 	// how Kibana and ES work.
 	// Reference: https://groups.google.com/forum/#!topic/logstash-users/_sdJNWJ4_5g
 	return timestamp.UTC().Format(format)
+}
+
+// dailyPeriodFormat returns the string representation of a timestamp to be
+// used in an daily time-based indices.
+func dailyPeriodFormat(timestamp time.Time) string {
+	return periodFormat(timestamp, "2006.01.02")
 }
 
 // monthlyPeriodFormat returns the string representation of a timestamp to be
@@ -67,7 +74,12 @@ func (r *Repository) StateIndex() string {
 // StateIndexForTimestamp returns the Elastic Search index appropriate to store
 // an object with the specified timestamp.
 func (r *Repository) StateIndexForTimestamp(timestamp time.Time) string {
-	return fmt.Sprintf("%sstate-%s", r.IndexPrefix(), hourlyPeriodFormat(timestamp))
+	// The state index depends on the chosen sync periodicity.
+	format := hourlyPeriodFormat(timestamp)
+	if r.PeriodicSync == SyncDaily || r.PeriodicSync == SyncWeekly {
+		format = dailyPeriodFormat(timestamp)
+	}
+	return fmt.Sprintf("%sstate-%s", r.IndexPrefix(), format)
 }
 
 // SnapshotIndex returns the current Elastic Search index appropriate to store

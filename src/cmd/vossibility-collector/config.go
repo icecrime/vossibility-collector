@@ -69,6 +69,12 @@ func configFromFile(c *serializedConfig) *Config {
 		}
 		out.EventSet[name] = set
 	}
+	// Create periodic sync.
+	p, err := NewPeriodicSync(c.PeriodicSync)
+	if err != nil {
+		log.Fatal(err)
+	}
+	out.PeriodicSync = p
 	// Create repositories.
 	for name, config := range c.Repositories {
 		evt := config.EventSetName()
@@ -76,14 +82,9 @@ func configFromFile(c *serializedConfig) *Config {
 			GivenName:        name,
 			EventSet:         out.EventSet[evt],
 			RepositoryConfig: &config,
+			PeriodicSync:     p,
 		}
 	}
-	// Initialize periodic sync.
-	p, err := NewPeriodicSync(c.PeriodicSync)
-	if err != nil {
-		log.Fatal(err)
-	}
-	out.PeriodicSync = p
 	return out
 }
 
