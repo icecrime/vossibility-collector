@@ -81,7 +81,7 @@ func configFromFile(c *serializedConfig) *Config {
 		out.Repositories[name] = &Repository{
 			GivenName:        name,
 			EventSet:         out.EventSet[evt],
-			RepositoryConfig: &config,
+			RepositoryConfig: config,
 			PeriodicSync:     p,
 		}
 	}

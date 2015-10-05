@@ -13,7 +13,7 @@ import (
 //	- Events in a per-month 'givenName_user-repo_YYYY-MM' index
 //	- Current state in a single 'givenname_user-repo_snapshot' index
 type Repository struct {
-	*RepositoryConfig
+	RepositoryConfig
 	GivenName    string
 	EventSet     EventSet
 	PeriodicSync PeriodicSync
