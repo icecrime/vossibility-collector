@@ -26,6 +26,9 @@ func makeTemplate(pattern string, dynamicTemplates []mappingProto) map[string]in
 		"order":    1,
 		"mappings": mappingProto{
 			"_default_": mappingProto{
+				"_index": mappingProto{
+					"enabled": true,
+				},
 				"_timestamp": mappingProto{
 					"enabled": true,
 					"store":   true,
