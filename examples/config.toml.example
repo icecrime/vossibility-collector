@@ -93,6 +93,7 @@ not_analyzed = [
     locked = "{{ .locked }}"
     milestone = "{{ if .milestone }}{{ .milestone.title }}{{end}}"
     number = "{{ .number }}"
+    opened_days = "{{ if .closed_at }}{{ days_difference .closed_at .created_at }}{{ end }}"
     state = "{{ .state }}"
     updated_at = "{{ .updated_at }}"
 
@@ -115,6 +116,7 @@ not_analyzed = [
     merged_at = "{{ .merged_at }}"
     merged_by = "{{ if .merged_by }}{{ user_data .merged_by.login }}{{ end }}"
     number = "{{ .number }}"
+    opened_days = "{{ if .closed_at }}{{ days_difference .closed_at .created_at }}{{ end }}"
     state = "{{ .state }}"
     title = "{{ .title }}"
     updated_at = "{{ .updated_at }}"
