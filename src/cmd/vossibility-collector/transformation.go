@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/icecrime/template"
 )
@@ -35,6 +36,7 @@ func TransformationsFromConfig(config map[string]map[string]string) (Transformat
 	res := Transformations(make(map[string]*Transformation))
 	funcs := template.FuncMap{
 		"apply_transformation": res.fnApplyTransformation,
+		"days_difference":      res.fnApplyDaysDifference,
 		"user_data":            res.fnApplyUserData,
 	}
 	for event, def := range config {
@@ -45,6 +47,18 @@ func TransformationsFromConfig(config map[string]map[string]string) (Transformat
 		res[event] = t
 	}
 	return res, nil
+}
+
+func (t Transformations) fnApplyDaysDifference(lhs, rhs string) interface{} {
+	lhsT, err := time.Parse(time.RFC3339, lhs)
+	if err != nil {
+		return nil
+	}
+	rhsT, err := time.Parse(time.RFC3339, rhs)
+	if err != nil {
+		return nil
+	}
+	return lhsT.Sub(rhsT).Hours() / 24
 }
 
 func (t Transformations) fnApplyUserData(login string) interface{} {
