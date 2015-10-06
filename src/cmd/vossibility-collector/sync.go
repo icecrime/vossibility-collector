@@ -1,6 +1,11 @@
 package main
 
-import "github.com/codegangsta/cli"
+import (
+	"strings"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/codegangsta/cli"
+)
 
 var syncCommand = cli.Command{
 	Name:   "sync",
@@ -21,9 +26,22 @@ func doSyncCommand(c *cli.Context) {
 	client := NewClient(config)
 	blobStore := NewTransformingBlobStore(config.Transformations)
 
-	// Get the list of repositories.
-	repos := make([]*Repository, 0, len(config.Repositories))
-	for _, r := range config.Repositories {
+	// Get the list of repositories from command-line (defaults to all).
+	repoToSync := c.Args()
+	if len(repoToSync) == 0 {
+		repoToSync = make([]string, 0, len(config.Repositories))
+		for givenName, _ := range config.Repositories {
+			repoToSync = append(repoToSync, givenName)
+		}
+	}
+
+	// Get the repositories instances from their given names.
+	repos := make([]*Repository, 0, len(repoToSync))
+	for _, givenName := range repoToSync {
+		r, ok := config.Repositories[givenName]
+		if !ok {
+			log.Fatalf("unknown repository %q", givenName)
+		}
 		repos = append(repos, r)
 	}
 
@@ -36,5 +54,6 @@ func doSyncCommand(c *cli.Context) {
 	syncOptions.Storage = StoreSnapshot
 
 	// Create and run the synchronization job.
+	log.Warnf("running sync jobs on repositories %s", strings.Join(repoToSync, ", "))
 	NewSyncCommandWithOptions(client, blobStore, &syncOptions).Run(repos)
 }
