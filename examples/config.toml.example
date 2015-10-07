@@ -94,6 +94,7 @@ not_analyzed = [
     milestone = "{{ if .milestone }}{{ .milestone.title }}{{end}}"
     number = "{{ .number }}"
     opened_days = "{{ if .closed_at }}{{ days_difference .closed_at .created_at }}{{ end }}"
+    repository = "{{ ._context.Repository.FullName }}"
     state = "{{ .state }}"
     updated_at = "{{ .updated_at }}"
 
@@ -117,6 +118,7 @@ not_analyzed = [
     merged_by = "{{ if .merged_by }}{{ user_data .merged_by.login }}{{ end }}"
     number = "{{ .number }}"
     opened_days = "{{ if .closed_at }}{{ days_difference .closed_at .created_at }}{{ end }}"
+    repository = "{{ ._context.Repository.FullName }}"
     state = "{{ .state }}"
     title = "{{ .title }}"
     updated_at = "{{ .updated_at }}"
@@ -124,11 +126,13 @@ not_analyzed = [
     [transformations.commit_comment_event]
     action = "{{ .action }}"
     body = "{{ .comment.body }}"
+    repository = "{{ ._context.Repository.FullName }}"
     commit_id = "{{ .comment.commit_id }}"
     sender = "{{ user_data .sender.login }}"
 
     [transformations.fork_event]
     forks = "{{ .repository.forks }}"
+    repository = "{{ ._context.Repository.FullName }}"
     sender = "{{ user_data .sender.login }}"
 
     [transformations.issue_comment_event]
@@ -136,6 +140,7 @@ not_analyzed = [
     action = "{{ .action }}"
     body = "{{ .comment.body }}"
     number = "{{ if .issue.pull_request }}{{ .issue.pull_request.number }}{{ else }}{{ .issue.number }}{{ end }}"
+    repository = "{{ ._context.Repository.FullName }}"
     sender = "{{ user_data .sender.login }}"
 
     [transformations.issues_event]
@@ -145,6 +150,7 @@ not_analyzed = [
     action = "{{ .action }}"
     item = "{{ apply_transformation \"issue\" .issue }}"
     number = "{{ .issue.number }}"
+    repository = "{{ ._context.Repository.FullName }}"
     sender = "{{ user_data .sender.login }}"
 
     [transformations.pull_request_review_comment_event]
@@ -152,6 +158,7 @@ not_analyzed = [
     body = "{{ .comment.body }}"
     labels = "{{ .pull_request.labels }}"
     number = "{{ .pull_request.number }}"
+    repository = "{{ ._context.Repository.FullName }}"
     sender = "{{ user_data .sender.login }}"
 
     [transformations.pull_request_event]
@@ -160,8 +167,10 @@ not_analyzed = [
     action = "{{ .action }}"
     item = "{{ apply_transformation \"pull_request\" .pull_request }}"
     number = "{{ .pull_request.number }}"
+    repository = "{{ ._context.Repository.FullName }}"
     sender = "{{ user_data .sender.login }}"
 
     [transformations.watch_event]
     sender = "{{ user_data .sender.login }}"
+    repository = "{{ ._context.Repository.FullName }}"
     stargazers_count = "{{ .repository.stargazers_count }}"

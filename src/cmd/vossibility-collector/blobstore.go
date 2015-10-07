@@ -60,7 +60,7 @@ type transformingBlobStore struct {
 // a given repository.
 func (b *transformingBlobStore) Index(storage Storage, repo *Repository, blob *Blob) error {
 	if trans := b.getTransformation(storage, repo, blob.Type); trans != nil {
-		t, err := trans.Apply(blob)
+		t, err := trans.Apply(repo, blob)
 		if err != nil {
 			return fmt.Errorf("applying transformation to event %q: %v", blob.Type, err)
 		}

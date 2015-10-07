@@ -95,6 +95,11 @@ func (r *Repository) IsSubscribed(event string) bool {
 	return r.EventSet.Contains(event)
 }
 
+// FullName returns a GitHub compatible identifier for the repository.
+func (r *Repository) FullName() string {
+	return r.User + "/" + r.Repo
+}
+
 // PrettyName returns a human readable identifier for the repository.
 func (r *Repository) PrettyName() string {
 	return fmt.Sprintf("%s (%s:%s)", r.GivenName, r.User, r.Repo)

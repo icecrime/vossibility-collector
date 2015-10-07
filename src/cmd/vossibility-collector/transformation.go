@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/icecrime/template"
 )
@@ -36,8 +35,8 @@ func TransformationsFromConfig(config map[string]map[string]string) (Transformat
 	res := Transformations(make(map[string]*Transformation))
 	funcs := template.FuncMap{
 		"apply_transformation": res.fnApplyTransformation,
-		"days_difference":      res.fnApplyDaysDifference,
-		"user_data":            res.fnApplyUserData,
+		"days_difference":      fnDaysDifference,
+		"user_data":            fnUserData,
 	}
 	for event, def := range config {
 		t, err := TransformationFromConfig(event, def, funcs)
@@ -47,29 +46,6 @@ func TransformationsFromConfig(config map[string]map[string]string) (Transformat
 		res[event] = t
 	}
 	return res, nil
-}
-
-func (t Transformations) fnApplyDaysDifference(lhs, rhs string) interface{} {
-	lhsT, err := time.Parse(time.RFC3339, lhs)
-	if err != nil {
-		return nil
-	}
-	rhsT, err := time.Parse(time.RFC3339, rhs)
-	if err != nil {
-		return nil
-	}
-	return lhsT.Sub(rhsT).Hours() / 24
-}
-
-func (t Transformations) fnApplyUserData(login string) interface{} {
-	// Ignore any error to retrieve the user data: we don't have entries for
-	// most of our users, and only store information for those who have
-	// particular status (employees and/or maintainers).
-	us := &userStore{}
-	if ud, err := us.Get(login); err == nil {
-		return ud
-	}
-	return &UserData{Login: login}
 }
 
 func (t Transformations) fnApplyTransformation(name string, data interface{}) (interface{}, error) {
@@ -115,10 +91,20 @@ func TransformationFromConfig(event string, config map[string]string, funcs temp
 // Apply takes a serialized JSON payload and returns a Blob on which the
 // transformation has been applied, as well as a collection of metadata
 // corresponding to fields prefixed by an underscore.
-func (t Transformation) Apply(b *Blob) (*Blob, error) {
+func (t Transformation) Apply(repo *Repository, b *Blob) (*Blob, error) {
 	m, err := b.Data.Map()
 	if err != nil {
 		return nil, err
+	}
+
+	// Insert some context information in the input object. This is not super
+	// clean, but there is unfortunately no way to do otherwise, as a function
+	// would have to be specific to that particular template instance (hence
+	// forcing us to create independent sets of templates for each repo).
+	m["_context"] = struct {
+		Repository *Repository
+	}{
+		Repository: repo,
 	}
 
 	// Create the result blob, but inherit from the parent's metadata.
