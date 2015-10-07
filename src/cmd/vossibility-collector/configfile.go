@@ -13,7 +13,7 @@ type serializedTable map[string]map[string]string
 // serializedConfig is the serialize version of the configuration.
 type serializedConfig struct {
 	ElasticSearch   string
-	GithubAPIToken  string `toml:"github_api_token"`
+	GitHubAPIToken  string `toml:"github_api_token"`
 	PeriodicSync    string `toml:"sync_periodicity"`
 	NSQ             NSQConfig
 	Mapping         map[string][]string

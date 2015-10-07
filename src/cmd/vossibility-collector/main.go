@@ -11,7 +11,7 @@ import (
 func main() {
 	app := cli.NewApp()
 	app.Name = "vossibility-collector"
-	app.Usage = "collect Github repository data"
+	app.Usage = "collect GitHub repository data"
 	app.Version = "0.1.0"
 
 	app.Flags = []cli.Flag{

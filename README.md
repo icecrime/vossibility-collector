@@ -21,7 +21,7 @@ build dashboards for your project: a basic example of what can be achieved is sh
 
 ```
 NAME:
-   vossibility-collector - collect Github repository data
+   vossibility-collector - collect GitHub repository data
 
 USAGE:
    vossibility-collector [global options] command [command options] [arguments...]
@@ -31,8 +31,8 @@ VERSION:
    
 COMMANDS:
    limits       get information about your GitHub API rate limits
-   run          listen and process Github events
-   sync         sync storage with the Github repositories
+   run          listen and process GitHub events
+   sync         sync storage with the GitHub repositories
    sync_mapping sync the configuration definition with the store mappings
    sync_users   sync the user store with the information from a file
    help, h      Shows a list of commands or help for one command

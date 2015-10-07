@@ -10,7 +10,7 @@ const (
 	DefaultEventSet = "default"
 )
 
-// EventSet is a map of Github event types to subscribe to associated with
+// EventSet is a map of GitHub event types to subscribe to associated with
 // their transformation.
 type EventSet map[string]*Transformation
 

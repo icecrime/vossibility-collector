@@ -27,8 +27,8 @@ const (
 )
 
 var (
-	// GithubEventTypes is the set of all possible Github webhooks events.
-	GithubEventTypes = map[string]bool{
+	// GitHubEventTypes is the set of all possible GitHub webhooks events.
+	GitHubEventTypes = map[string]bool{
 		EvtCommitComment:            true,
 		EvtCreate:                   true,
 		EvtDelete:                   true,
@@ -56,5 +56,5 @@ var (
 )
 
 func IsValidEventType(event string) bool {
-	return GithubEventTypes[event]
+	return GitHubEventTypes[event]
 }

@@ -84,9 +84,9 @@ func (b *transformingBlobStore) getTransformation(storage Storage, repo *Reposit
 	// This is not a live event: we have hardcoded transformations for the
 	// issues and pull requests data types.
 	switch event {
-	case GithubTypeIssue:
+	case GitHubTypeIssue:
 		return repo.EventSet[SnapshotIssueType]
-	case GithubTypePullRequest:
+	case GitHubTypePullRequest:
 		return repo.EventSet[SnapshotPullRequestType]
 	default:
 		// No transformation for that event type.

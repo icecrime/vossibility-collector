@@ -148,7 +148,7 @@ func (r *Repository) SnapshotIndex() string {
 	return fmt.Sprintf("%ssnapshot", r.IndexPrefix())
 }
 
-// IsSubscribed returns whether we should subscribe for a particular Github
+// IsSubscribed returns whether we should subscribe for a particular GitHub
 // event type for this repository.
 func (r *Repository) IsSubscribed(event string) bool {
 	return r.EventSet.Contains(event)

@@ -32,8 +32,8 @@ not_analyzed = [
 ]
 
 # List of repositories to monitor. For each repository:
-#   - user: Github user name
-#   - repo: Github repository name
+#   - user: GitHub user name
+#   - repo: GitHub repository name
 #   - topic: associated NSQ topic to listen for events
 #   - events[="default"]: identifier of the event set to subscribe to
 
@@ -77,7 +77,7 @@ not_analyzed = [
 
 
 # Transformations to apply to different entity type before forwarding to the
-# storage backend. We usually don't need every field provided by Github,
+# storage backend. We usually don't need every field provided by GitHub,
 # especially the various links, user, and repository information. We also
 # sometimes need to rename or move the fields around.
 #

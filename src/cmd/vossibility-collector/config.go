@@ -36,7 +36,7 @@ func (r RepositoryConfig) EventSetName() string {
 // Config is the global configuration for the tool.
 type Config struct {
 	ElasticSearch       string
-	GithubAPIToken      string
+	GitHubAPIToken      string
 	PeriodicSync        PeriodicSync
 	NSQ                 NSQConfig
 	NotAnalyzedPatterns []string
@@ -47,7 +47,7 @@ type Config struct {
 func configFromFile(c *serializedConfig) *Config {
 	out := &Config{
 		ElasticSearch:       c.ElasticSearch,
-		GithubAPIToken:      c.GithubAPIToken,
+		GitHubAPIToken:      c.GitHubAPIToken,
 		NSQ:                 c.NSQ,
 		NotAnalyzedPatterns: c.Mapping[MappingNotAnalyzedKey],
 		Repositories:        make(map[string]*Repository),

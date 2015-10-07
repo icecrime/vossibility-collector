@@ -14,7 +14,7 @@ import (
 
 var runCommand = cli.Command{
 	Name:   "run",
-	Usage:  "listen and process Github events",
+	Usage:  "listen and process GitHub events",
 	Action: doRunCommand,
 }
 
@@ -109,7 +109,7 @@ func runPeriodicSync(client *github.Client, config *Config) {
 	// StoreCurrentState (which corresponds to our rolling storage).
 	syncOptions := DefaultSyncOptions
 	syncOptions.SleepPerPage = 10 // TODO Tired of getting blacklisted :-)
-	syncOptions.State = GithubStateFilterOpened
+	syncOptions.State = GitHubStateFilterOpened
 	syncOptions.Storage = StoreCurrentState
 
 	// Create the blobStore and run the syncCommand.

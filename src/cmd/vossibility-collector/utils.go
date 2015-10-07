@@ -7,19 +7,19 @@ import (
 )
 
 const (
-	GithubTypeIssue         = "issue"
-	GithubTypePullRequest   = "pull_request"
+	GitHubTypeIssue         = "issue"
+	GitHubTypePullRequest   = "pull_request"
 	SnapshotIssueType       = "snapshot_issue"
 	SnapshotPullRequestType = "snapshot_pull_request"
 )
 
 type partialMessage struct {
-	GithubEvent    string `json:"X-Github-Event"`
-	GithubDelivery string `json:"X-Github-Delivery"`
+	GitHubEvent    string `json:"X-GitHub-Event"`
+	GitHubDelivery string `json:"X-GitHub-Delivery"`
 	HubSignature   string `json:"X-Hub-Signature"`
 }
 
-// githubPagedIndexer abstracts functions that list Github objects in a paged
+// githubPagedIndexer abstracts functions that list GitHub objects in a paged
 // manner such as issues and pull requests.
 type githubPagedIndexer func(page int) ([]githubIndexedItem, *github.Response, error)
 
@@ -35,7 +35,7 @@ func (g githubPR) ID() string {
 }
 
 func (g githubPR) Type() string {
-	return GithubTypePullRequest
+	return GitHubTypePullRequest
 }
 
 type githubIssue github.Issue
@@ -45,7 +45,7 @@ func (g githubIssue) ID() string {
 }
 
 func (g githubIssue) Type() string {
-	return GithubTypeIssue
+	return GitHubTypeIssue
 }
 
 type githubEnrichedPR struct {
@@ -58,7 +58,7 @@ func (g *githubEnrichedPR) ID() string {
 }
 
 func (g *githubEnrichedPR) Type() string {
-	return GithubTypePullRequest
+	return GitHubTypePullRequest
 }
 
 func pullRequestFromIssue(cli *github.Client, repo *Repository, i *github.Issue) (githubIndexedItem, error) {

@@ -9,19 +9,19 @@ import (
 	"github.com/google/go-github/github"
 )
 
-// GithubStateFilter is an enumeration of possible filtering mode when
-// retrieving Github issues.
-type GithubStateFilter string
+// GitHubStateFilter is an enumeration of possible filtering mode when
+// retrieving GitHub issues.
+type GitHubStateFilter string
 
 const (
-	// GithubStateFilterAll takes all issues.
-	GithubStateFilterAll GithubStateFilter = "all"
+	// GitHubStateFilterAll takes all issues.
+	GitHubStateFilterAll GitHubStateFilter = "all"
 
-	// GithubStateFilterClosed filters closed issues.
-	GithubStateFilterClosed GithubStateFilter = "closed"
+	// GitHubStateFilterClosed filters closed issues.
+	GitHubStateFilterClosed GitHubStateFilter = "closed"
 
-	// GithubStateFilterOpened filters opened issues.
-	GithubStateFilterOpened GithubStateFilter = "open"
+	// GitHubStateFilterOpened filters opened issues.
+	GitHubStateFilterOpened GitHubStateFilter = "open"
 )
 
 const (
@@ -29,14 +29,14 @@ const (
 	DefaultFrom = 1
 
 	// DefaultNumFetchProcs is the default number of goroutines fetching data
-	// from the Github API in parallel.
+	// from the GitHub API in parallel.
 	DefaultNumFetchProcs = 20
 
 	// DefaultNumIndexProcs is the default number of goroutines indexing data
 	// into Elastic Search in parallel.
 	DefaultNumIndexProcs = 5
 
-	// DefaultPerPage is the default number of items per page in Github API
+	// DefaultPerPage is the default number of items per page in GitHub API
 	// requests.
 	DefaultPerPage = 100
 
@@ -49,7 +49,7 @@ const (
 	DefaultStorage = StoreSnapshot
 
 	// DefaultFilterMode is the default filtering mode for retrieving issues.
-	DefaultFilterMode = GithubStateFilterOpened
+	DefaultFilterMode = GitHubStateFilterOpened
 )
 
 // DefaultSyncOptions is the default set of options for a synchronization job.
@@ -59,7 +59,7 @@ var DefaultSyncOptions = syncOptions{
 	NumIndexProcs: DefaultNumIndexProcs,
 	PerPage:       DefaultPerPage,
 	SleepPerPage:  DefaultSleepPerPage,
-	State:         GithubStateFilterOpened,
+	State:         GitHubStateFilterOpened,
 	Storage:       DefaultStorage,
 }
 
@@ -98,7 +98,7 @@ type syncOptions struct {
 	SleepPerPage int
 
 	// State is a filter for retrieved issues and pull requests.
-	State GithubStateFilter
+	State GitHubStateFilter
 
 	// Storage is the type of Storage to Index into.
 	Storage Storage
@@ -160,7 +160,7 @@ func (s *syncCmd) Run(repos []*Repository) {
 
 		// When the fetchingProc is done, all data to index has been queued.
 		s.wgFetch.Wait()
-		log.Warn("done fetching Github API data")
+		log.Warn("done fetching GitHub API data")
 		close(s.toIndex)
 
 		// Wait until indexing completes.
@@ -184,7 +184,7 @@ func (s *syncCmd) Run(repos []*Repository) {
 // some of which pull requests don't (in particular labels), but we still need
 // the information that are held by the pull request itself (such as additions
 // and deletions).
-func (s *syncCmd) fetchRepositoryItems(r *Repository, from, sleepPerPage int, stateFilter GithubStateFilter) error {
+func (s *syncCmd) fetchRepositoryItems(r *Repository, from, sleepPerPage int, stateFilter GitHubStateFilter) error {
 	count := 0
 	for page := from/s.options.PerPage + 1; page != 0; {
 		iss, resp, err := s.client.Issues.ListByRepo(r.User, r.Repo, &github.IssueListByRepoOptions{
@@ -242,7 +242,7 @@ func (s *syncCmd) indexingProc(r *Repository) {
 	for i := range s.toIndex {
 		// We have to serialize back to JSON in order to transform the payload
 		// as we wish. This could be optimized out if we were to read the raw
-		// Github data rather than rely on the typed go-github package.
+		// GitHub data rather than rely on the typed go-github package.
 		payload, err := json.Marshal(i)
 		if err != nil {
 			log.Errorf("error marshaling githubIndexedItem %q (%s): %v", i.ID(), i.Type(), err)

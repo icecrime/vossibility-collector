@@ -52,7 +52,7 @@ func (m *MessageHandler) HandleMessage(n *nsq.Message) error {
 		log.Error(err)
 		return nil // No need to retry
 	}
-	return m.handleEvent(n.Timestamp, p.GithubEvent, p.GithubDelivery, n.Body)
+	return m.handleEvent(n.Timestamp, p.GitHubEvent, p.GitHubDelivery, n.Body)
 }
 
 func (m *MessageHandler) handleEvent(timestamp int64, event, delivery string, payload json.RawMessage) error {

@@ -9,7 +9,7 @@ import (
 
 var syncCommand = cli.Command{
 	Name:   "sync",
-	Usage:  "sync storage with the Github repositories",
+	Usage:  "sync storage with the GitHub repositories",
 	Action: doSyncCommand,
 	Flags: []cli.Flag{
 		cli.IntFlag{Name: "from", Value: 1, Usage: "issue number to start from"},
@@ -50,7 +50,7 @@ func doSyncCommand(c *cli.Context) {
 	syncOptions := DefaultSyncOptions
 	syncOptions.From = c.Int("from")
 	syncOptions.SleepPerPage = c.Int("sleep")
-	syncOptions.State = GithubStateFilterAll
+	syncOptions.State = GitHubStateFilterAll
 	syncOptions.Storage = StoreSnapshot
 
 	// Create and run the synchronization job.
