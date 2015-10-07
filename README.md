@@ -112,6 +112,11 @@ In an event set definition, each key should be a valid [GitHub event
 identifier](https://developer.github.com/webhooks/#events), and each value a string that references
 a given [transformation](#transformation-definition).
 
+We also require two special entries in an event set definition: `snapshot_issue` (which applies to
+snapshoted issue content) and `snapshot_pull_request` (which applies to snapshoted pull request
+content). Those are mandatory because we assume that issues and pull requests are always being
+stored.
+
 ### `[transformations]` section
 
 The `[transformation]` section is both the most complex and most interesting section. It defines a
@@ -176,7 +181,19 @@ a [builtin function](#builtin-functions) described below).
 
 #### Builtin functions
 
-We currently support two builtin functions:
+We currently support the following builtin functions:
+
+- `apply_transformation` takes a single argument and uses this as the name of a transformation to
+apply to a sub element of the source object. This is for example particularly useful for a GitHub
+[`issue_event`](https://developer.github.com/v3/activity/events/types/#issuesevent) that contains a
+nested issue object on which we'd like to apply the same transformation we usually do.
+
+- `context` is a constant function that returns contextual information about the data being
+processed. It currently has a single field `Repository` that exposes two methods: `FullName` (e.g.,
+`docker/docker`) and `PrettyName` (e.g., `engine (docker:docker)`).
+
+- `days_difference` computes the difference between two GitHub formatted dates and returns the
+result as a floating number of days.
 
 - `user_data` takes a single argument, uses its value as a document identifier in the to query an
 object of type `user` in the index `users` of the Elastic Search backend, and returns the source
@@ -185,11 +202,6 @@ JSON.
   This effectively allows to enrich the value of a field with information in database: in our case,
 this allows to replace a single login such as `icecrime` into a structure object that contains
 information about the person's employer and maintainer status.
-
-- `apply_transformation`takes a single argument and uses this as the name of a transformation to
-apply to a sub element of the source object. This is for example particularly useful for a GitHub
-[`issue_event`](https://developer.github.com/v3/activity/events/types/#issuesevent) that contains a
-nested issue object on which we'd like to apply the same transformation we usually do.
 
 # Project state
 

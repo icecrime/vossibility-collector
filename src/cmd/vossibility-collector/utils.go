@@ -7,8 +7,10 @@ import (
 )
 
 const (
-	GithubTypeIssue       = "issue"
-	GithubTypePullRequest = "pull_request"
+	GithubTypeIssue         = "issue"
+	GithubTypePullRequest   = "pull_request"
+	SnapshotIssueType       = "snapshot_issue"
+	SnapshotPullRequestType = "snapshot_pull_request"
 )
 
 type partialMessage struct {

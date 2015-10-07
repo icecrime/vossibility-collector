@@ -24,7 +24,7 @@ var syncCommand = cli.Command{
 func doSyncCommand(c *cli.Context) {
 	config := ParseConfigOrDie(c.GlobalString("config"))
 	client := NewClient(config)
-	blobStore := NewTransformingBlobStore(config.Transformations)
+	blobStore := NewTransformingBlobStore()
 
 	// Get the list of repositories from command-line (defaults to all).
 	repoToSync := c.Args()

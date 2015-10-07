@@ -31,10 +31,11 @@ type Transformations map[string]*Transformation
 
 // TransformationsFromConfig creates a transformation from a flat textual
 // configuration description.
-func TransformationsFromConfig(config map[string]map[string]string) (Transformations, error) {
+func TransformationsFromConfig(context Context, config serializedTable) (Transformations, error) {
 	res := Transformations(make(map[string]*Transformation))
 	funcs := template.FuncMap{
 		"apply_transformation": res.fnApplyTransformation,
+		"context":              fnContext(context),
 		"days_difference":      fnDaysDifference,
 		"user_data":            fnUserData,
 	}

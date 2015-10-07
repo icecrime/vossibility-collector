@@ -42,18 +42,16 @@ type transformations struct {
 
 // NewTransformingBlobStore creates a new transformingBlobStore backed by a
 // simpleBlobStore.
-func NewTransformingBlobStore(transformations Transformations) blobStore {
+func NewTransformingBlobStore() blobStore {
 	return &transformingBlobStore{
-		impl:            NewSimpleBlobStore(),
-		transformations: transformations,
+		impl: NewSimpleBlobStore(),
 	}
 }
 
 // transformingBlobStore implements blobStore by applying transformations
 // before forwarding the resulting blob to a backing blobStore instance.
 type transformingBlobStore struct {
-	impl            blobStore
-	transformations Transformations
+	impl blobStore
 }
 
 // Index stores the blob into the specified storage under the provided id for
@@ -87,13 +85,12 @@ func (b *transformingBlobStore) getTransformation(storage Storage, repo *Reposit
 	// issues and pull requests data types.
 	switch event {
 	case GithubTypeIssue:
-		// [transformation.pull_request] is mandatory
-		return b.transformations[GithubTypeIssue]
+		return repo.EventSet[SnapshotIssueType]
 	case GithubTypePullRequest:
-		// [transformation.issue] is mandatory
-		return b.transformations[GithubTypePullRequest]
+		return repo.EventSet[SnapshotPullRequestType]
 	default:
 		// No transformation for that event type.
+		log.Warnf("no transformation found for event type %q", event)
 		return nil
 	}
 }

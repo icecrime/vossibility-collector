@@ -62,7 +62,7 @@ func createQueues(client *github.Client, config *Config, lock *sync.RWMutex) []*
 			Channel: config.NSQ.Channel,
 			Lookupd: config.NSQ.Lookupd,
 		}
-		queue, err := NewQueue(qconf, NewMessageHandler(client, config, repo, lock))
+		queue, err := NewQueue(qconf, NewMessageHandler(client, repo, lock))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -113,6 +113,6 @@ func runPeriodicSync(client *github.Client, config *Config) {
 	syncOptions.Storage = StoreCurrentState
 
 	// Create the blobStore and run the syncCommand.
-	blobStore := NewTransformingBlobStore(config.Transformations)
+	blobStore := NewTransformingBlobStore()
 	NewSyncCommandWithOptions(client, blobStore, &syncOptions).Run(repos)
 }

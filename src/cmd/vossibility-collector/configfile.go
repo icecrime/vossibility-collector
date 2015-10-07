@@ -8,6 +8,8 @@ const (
 	MappingNotAnalyzedKey = "not_analyzed"
 )
 
+type serializedTable map[string]map[string]string
+
 // serializedConfig is the serialize version of the configuration.
 type serializedConfig struct {
 	ElasticSearch   string
@@ -16,8 +18,8 @@ type serializedConfig struct {
 	NSQ             NSQConfig
 	Mapping         map[string][]string
 	Repositories    map[string]RepositoryConfig
-	EventSet        map[string]map[string]string `toml:"event_set"`
-	Transformations map[string]map[string]string
+	EventSet        serializedTable `toml:"event_set"`
+	Transformations serializedTable
 }
 
 // verify enforces several rules about the configuration.
@@ -42,6 +44,12 @@ func (c *serializedConfig) verifyEventSet() error {
 				return fmt.Errorf("event %q references an unknown transformation %q", name, transfo)
 			}
 		}
+		// Some events are mandatory.
+		for _, mandatoryEvents := range []string{SnapshotIssueType, SnapshotPullRequestType} {
+			if _, ok := s[mandatoryEvents]; !ok {
+				return fmt.Errorf("missing required event %q in event_set %q", mandatoryEvents, name)
+			}
+		}
 	}
 	return nil
 }
@@ -64,12 +72,6 @@ func (c *serializedConfig) verifyRepositories() error {
 }
 
 func (c *serializedConfig) verifyTransformations() error {
-	// Some transformations are mandatory.
-	for _, mandatoryTransfo := range []string{GithubTypeIssue, GithubTypePullRequest} {
-		if _, ok := c.Transformations[mandatoryTransfo]; !ok {
-			return fmt.Errorf("missing required transformation %q", mandatoryTransfo)
-		}
-	}
 	// Transformations should have either none or both of the snapshot
 	// metadata fields.
 	for name, t := range c.Transformations {

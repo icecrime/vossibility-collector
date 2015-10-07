@@ -5,7 +5,16 @@ import (
 	"time"
 )
 
-// Repository represents a Github repository with its associated user given
+// TODO Repository {
+//   RepositoryInfo (Name, PrettyName, ...)
+//   EventSet (subscribed events -> transfo)
+//   IssueTransfo
+//   PullRequestTransfo
+// }
+//
+// All transfo specific to the repo instance (gets passed a Context interface)
+
+// Repository represents a GitHub repository with its associated user given
 // name and subscribed events set.
 //
 // Data for a repository is stored in Elastic Search according to the following
@@ -13,10 +22,60 @@ import (
 //	- Events in a per-month 'givenName_user-repo_YYYY-MM' index
 //	- Current state in a single 'givenname_user-repo_snapshot' index
 type Repository struct {
+	// RepositoryConfig is the configuration defined for this particular
+	// repository.
 	RepositoryConfig
-	GivenName    string
-	EventSet     EventSet
+
+	// GivenName is the symbolic name for the repository as defined in the
+	// configuration.
+	GivenName string
+
+	// EventSet is a map of subscribed GitHub events associated with the data
+	// transformation to be applied.
+	EventSet EventSet
+
+	// PeriodicSync is the synchronization periodicity for this particular
+	// repository.
 	PeriodicSync PeriodicSync
+
+	// Transformations is the collection of transformations instantiated for
+	// this particular repository.
+	//
+	// It is likely that most of them are not repository specific (for example
+	// if they never rely on the context information). However, this is a
+	// difficult thing to anticipate, and is made even more complicated by the
+	// fact that a given transformation can call another one through the
+	// provided "apply_transformation" function.
+	Transformations Transformations
+}
+
+func NewRepository(givenName string, repoConfig *RepositoryConfig, fullConfig *serializedConfig) (*Repository, error) {
+	r := &Repository{
+		EventSet:         make(map[string]*Transformation),
+		GivenName:        givenName,
+		RepositoryConfig: *repoConfig,
+	}
+
+	// Create repository specific transformations.
+	context := struct{ Repository RepositoryInfo }{Repository: r}
+	transformations, err := TransformationsFromConfig(context, fullConfig.Transformations)
+	if err != nil {
+		return nil, err
+	}
+	r.Transformations = transformations
+
+	// Extract the specified event set for this repository.
+	evtSetName := repoConfig.EventSetName()
+	evtSet, ok := fullConfig.EventSet[evtSetName]
+	if !ok {
+		return nil, fmt.Errorf("invalid event set %q for repository %q", evtSetName, givenName)
+	}
+
+	// Map the transformation to each of the configured events.
+	for event, transfoName := range evtSet {
+		r.EventSet[event] = r.Transformations[transfoName]
+	}
+	return r, nil
 }
 
 // periodFormat returns the string representation of a timestamp to be used in

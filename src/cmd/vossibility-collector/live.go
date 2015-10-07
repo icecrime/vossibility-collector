@@ -17,11 +17,11 @@ const (
 	LabelsAttribute = "pull_request.labels"
 )
 
-func NewMessageHandler(client *github.Client, config *Config, repo *Repository, pauseLock *sync.RWMutex) *MessageHandler {
+func NewMessageHandler(client *github.Client, repo *Repository, pauseLock *sync.RWMutex) *MessageHandler {
 	return &MessageHandler{
 		client:    client,
 		repo:      repo,
-		store:     NewTransformingBlobStore(config.Transformations),
+		store:     NewTransformingBlobStore(),
 		pauseLock: pauseLock,
 	}
 }

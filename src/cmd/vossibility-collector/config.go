@@ -41,8 +41,6 @@ type Config struct {
 	NSQ                 NSQConfig
 	NotAnalyzedPatterns []string
 	Repositories        map[string]*Repository
-	EventSet            map[string]EventSet
-	Transformations     Transformations
 }
 
 // configFromFile creates a Config object from its serialized counterpart.
@@ -52,38 +50,24 @@ func configFromFile(c *serializedConfig) *Config {
 		GithubAPIToken:      c.GithubAPIToken,
 		NSQ:                 c.NSQ,
 		NotAnalyzedPatterns: c.Mapping[MappingNotAnalyzedKey],
-		EventSet:            make(map[string]EventSet),
 		Repositories:        make(map[string]*Repository),
 	}
-	// Create transformations.
-	t, err := TransformationsFromConfig(c.Transformations)
-	if err != nil {
-		log.Fatal(err)
-	}
-	out.Transformations = t
-	// Create event sets.
-	for name, d := range c.EventSet {
-		set := EventSet(make(map[string]*Transformation))
-		for event, transformation := range d {
-			set[event] = out.Transformations[transformation]
-		}
-		out.EventSet[name] = set
-	}
+
 	// Create periodic sync.
 	p, err := NewPeriodicSync(c.PeriodicSync)
 	if err != nil {
 		log.Fatal(err)
 	}
 	out.PeriodicSync = p
+
 	// Create repositories.
 	for name, config := range c.Repositories {
-		evt := config.EventSetName()
-		out.Repositories[name] = &Repository{
-			GivenName:        name,
-			EventSet:         out.EventSet[evt],
-			RepositoryConfig: config,
-			PeriodicSync:     p,
+		repo, err := NewRepository(name, &config, c)
+		if err != nil {
+			log.Fatal(err)
 		}
+		repo.PeriodicSync = p
+		out.Repositories[name] = repo
 	}
 	return out
 }
