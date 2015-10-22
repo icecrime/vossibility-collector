@@ -301,10 +301,11 @@ VirtualBox on MS Windows:
 ##### Run vossibility
 `docker run -v {local-config-file}:/etc/config.toml -p 4140:4140 -p 4141:4141 --name vossibility icecrime/vossibility-collector -c "/etc/config.toml" run`
 
-Note that `{local-config-file}` might be something like `/home/docker/config.toml`
+Note that `{local-config-file}` should be something like `/home/docker/config.toml`
 
 #### Launch Kibana
 Give Logstash a minute or so to start up, then open a browser on the host machine to
+
 `http://{host-adapter-nat-address}:9292/index.html#/dashboard/file/default.json`
 
 Hint: this is the the same as the logstash curl test.  You should see something like:
