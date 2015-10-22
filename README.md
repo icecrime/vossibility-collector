@@ -304,9 +304,9 @@ VirtualBox on MS Windows:
 Note that `{local-config-file}` should be something like `/home/docker/config.toml`
 
 #### Launch Kibana
-Give Logstash a minute or so to start up, then open a browser on the host machine to
+Give Logstash a minute or so to start up, then open a browser on the host machine to:
 
 `http://{host-adapter-nat-address}:9292/index.html#/dashboard/file/default.json`
 
-Hint: this is the the same as the logstash curl test.  You should see something like:
+You should see something like:
 ![Kibana welcome screen](https://raw.githubusercontent.com/JacquesPerrault/jacquesperrault.github.io/master/images/kibana-welcome-screen.jpg)
