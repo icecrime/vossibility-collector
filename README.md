@@ -210,9 +210,9 @@ information about the person's employer and maintainer status.
 The project is in a very early state, and most notably lacks testing and CI.
 
 
-#### Environment setup
+# Environment setup
 
-### Pull docker images
+#### Pull docker images
 ```
 docker pull nsqio/nsq
 docker pull elasticsearch
@@ -220,13 +220,13 @@ docker pull pblittle/docker-logstash
 docker pull icecrime/vossibility-collector
 ```
 
-### Create the vossibility config file
+#### Create the vossibility config file
 Create a [config file](https://github.com/icecrime/vossibility-collector/blob/master/examples/config.toml.example) as noted above.  You can create a local copy in your home directory, and reference it on launch (details below).
 
-### Create a data mount for NSQ
+#### Create a data mount for NSQ
 `docker create -v /data --name data nsqio/nsq /bin/true`
 
-### Launch NSQ
+#### Launch NSQ
 ```
 docker run -d --name lookupd -p 4160:4160 -p 4161:4161 nsqio/nsq /nsqlookupd
 docker run -d --name nsqd -p 4150:4150 -p 4151:4151 nsqio/nsq /nsqd --data-path=/data --broadcast-address=172.17.42.1 --lookupd-tcp-address=172.17.42.1:4160
@@ -245,19 +245,19 @@ where `{name-of-topic}` should match the repository topic specified in `config.t
 
 Test with `curl -X GET http://{nsq-gateway-address}:4151/stats`
 
-### Set up ElasticSearch
+#### Set up ElasticSearch
 docker run -d --name elasticsearch elasticsearch
 
 Use `docker inspect elasticsearch | grep IPAddress` to get the IP address, then...
 Test with `curl -X GET http://{elasticsearch-ip-address}:9200`
 
-### Set up Logstash
+#### Set up Logstash
 `docker run -d --name logstash -e ES_PORT=9200 -p 9200:9200 -p 9292:9292 pblittle/docker-logstash`
 
 Use `ifconfig | grep addr` to find the IP address bound to the host adapter (typically this is the address bound to 127.0.0.1), then...
 Test with `curl -X GET http://{host-adapter-nat-address}:9292/index.html#/dashboard/file/default.json`
 
-### Set up vossibility
+#### Set up vossibility
 
 #### Check host network settings
 VirtualBox on MS Windows:
