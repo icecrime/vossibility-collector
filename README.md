@@ -233,12 +233,14 @@ docker run -d --name nsqd -p 4150:4150 -p 4151:4151 nsqio/nsq /nsqd --data-path=
 ```
 
 Use `docker inspect lookupd | grep Gateway` to get the IP address, then...
+
 Test with `curl -X GET http://{nsq-gateway-address}:4151/info`
 
 #### Create NSQ topics
 There should be a topic for each repository listed in `config.toml`.
 
 After launching NSQ, use the following command to create a topic:
+
 `curl -X POST http://{nsq-gateway-address}:4151/topic/create?topic={name-of-topic}`
 
 where `{name-of-topic}` should match the repository topic specified in `config.toml`
@@ -249,12 +251,14 @@ Test with `curl -X GET http://{nsq-gateway-address}:4151/stats`
 docker run -d --name elasticsearch elasticsearch
 
 Use `docker inspect elasticsearch | grep IPAddress` to get the IP address, then...
+
 Test with `curl -X GET http://{elasticsearch-ip-address}:9200`
 
 #### Set up Logstash
 `docker run -d --name logstash -e ES_PORT=9200 -p 9200:9200 -p 9292:9292 pblittle/docker-logstash`
 
 Use `ifconfig | grep addr` to find the IP address bound to the host adapter (typically this is the address bound to 127.0.0.1), then...
+
 Test with `curl -X GET http://{host-adapter-nat-address}:9292/index.html#/dashboard/file/default.json`
 
 #### Set up vossibility
@@ -264,4 +268,6 @@ VirtualBox on MS Windows:
 ![vossibility network setup](https://raw.githubusercontent.com/JacquesPerrault/jacquesperrault.github.io/master/images/vossibility-network-settings.jpg)
 
 #### Run vossibility
-`docker run -v /home/docker/config.toml:/etc/config.toml -p 4140:4140 -p 4141:4141 --name vossibility icecrime/vossibility-collector -c "/etc/config.toml" run`
+`docker run -v {local-config-file}:/etc/config.toml -p 4140:4140 -p 4141:4141 --name vossibility icecrime/vossibility-collector -c "/etc/config.toml" run`
+
+Note that `{local-config-file}` might be something like `/home/docker/config.toml`
