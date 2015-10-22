@@ -288,19 +288,24 @@ Test with `curl -X GET http://{elasticsearch-ip-address}:9200`.  You should see 
 
 Use `ifconfig | grep addr` to find the IP address bound to the host adapter (typically this is the address bound to 127.0.0.1), then...
 
-Test with `curl -X GET http://{host-adapter-nat-address}:9292/index.html#/dashboard/file/default.json`.  You should a block of HTML returned.
+Test with:
+`curl -X GET http://{host-adapter-nat-address}:9292/index.html#/dashboard/file/default.json`
+You should a block of HTML returned.
 
 #### Set up vossibility
 
-#### Check host network settings
+##### Check host network settings
 VirtualBox on MS Windows:
 ![vossibility network setup](https://raw.githubusercontent.com/JacquesPerrault/jacquesperrault.github.io/master/images/vossibility-network-settings.jpg)
 
-#### Run vossibility
+##### Run vossibility
 `docker run -v {local-config-file}:/etc/config.toml -p 4140:4140 -p 4141:4141 --name vossibility icecrime/vossibility-collector -c "/etc/config.toml" run`
 
 Note that `{local-config-file}` might be something like `/home/docker/config.toml`
 
 #### Launch Kibana
-Give Logstash a minute or so to start up, then open a browser on the host machine to `http://{host-adapter-nat-address}:9292/index.html#/dashboard/file/default.json` (same as the logstash curl test).  You should see something like:
+Give Logstash a minute or so to start up, then open a browser on the host machine to
+`http://{host-adapter-nat-address}:9292/index.html#/dashboard/file/default.json`
+
+Hint: this is the the same as the logstash curl test.  You should see something like:
 ![Kibana welcome screen](https://raw.githubusercontent.com/JacquesPerrault/jacquesperrault.github.io/master/images/kibana-welcome-screen.jpg)
