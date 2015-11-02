@@ -73,7 +73,7 @@ func (m *MessageHandler) handleEvent(timestamp int64, event, delivery string, pa
 	// Take the timestamp from the NSQ Message (useful if the queue was put on
 	// hold or if the process is catching up). This timestamp is a UnixNano.
 	b.Timestamp = time.Unix(0, timestamp)
-	return m.store.Index(StoreLiveEvent, m.repo, b)
+	return m.store.Store(StoreLiveEvent, m.repo, b)
 }
 
 func (m *MessageHandler) prepareForStorage(o *Blob) error {

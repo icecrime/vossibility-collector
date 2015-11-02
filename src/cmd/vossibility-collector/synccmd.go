@@ -256,7 +256,7 @@ func (s *syncCmd) indexingProc(r *Repository) {
 			continue
 		}
 		// Persist the object in Elastic Search.
-		if err := s.blobStore.Index(s.options.Storage, r, b); err != nil {
+		if err := s.blobStore.Store(s.options.Storage, r, b); err != nil {
 			log.Error(err)
 		}
 	}

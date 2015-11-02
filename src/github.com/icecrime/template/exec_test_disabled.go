@@ -14,6 +14,17 @@ import (
 	"testing"
 )
 
+type visitableBuffer struct {
+	bytes.Buffer
+}
+
+func newVisitableBuffer() *visitableBuffer {
+	return &visitableBuffer{}
+}
+
+func (visitableBuffer) Visit(interface{}) {
+}
+
 var debug = flag.Bool("debug", false, "show the errors produced by the tests")
 
 // T has lots of interesting pieces to use to test execution.
@@ -598,7 +609,7 @@ func mapOfThree() interface{} {
 }
 
 func testExecute(execTests []execTest, template *Template, t *testing.T) {
-	b := new(bytes.Buffer)
+	b := newVisitableBuffer()
 	funcs := FuncMap{
 		"add":         add,
 		"count":       count,
@@ -684,7 +695,7 @@ func TestDelims(t *testing.T) {
 		if err != nil {
 			t.Fatalf("delim %q text %q parse err %s", left, text, err)
 		}
-		var b = new(bytes.Buffer)
+		var b = newVisitableBuffer()
 		err = tmpl.Execute(b, value)
 		if err != nil {
 			t.Fatalf("delim %q exec err %s", left, err)
@@ -697,7 +708,7 @@ func TestDelims(t *testing.T) {
 
 // Check that an error from a method flows back to the top.
 func TestExecuteError(t *testing.T) {
-	b := new(bytes.Buffer)
+	b := newVisitableBuffer()
 	tmpl := New("error")
 	_, err := tmpl.Parse("{{.MyError true}}")
 	if err != nil {
@@ -728,7 +739,7 @@ func TestExecError(t *testing.T) {
 	if err != nil {
 		t.Fatal("parse error:", err)
 	}
-	var b bytes.Buffer
+	var b visitableBuffer
 	err = tmpl.Execute(&b, 5) // 5 is out of range indexing "hi"
 	if err == nil {
 		t.Fatal("expected error")
@@ -822,7 +833,7 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Fatal("parse error:", err)
 	}
-	var b bytes.Buffer
+	var b visitableBuffer
 	stripSpace := func(r rune) rune {
 		if r == '\t' || r == '\n' {
 			return -1
@@ -861,7 +872,7 @@ const testTemplates = `{{define "one"}}one{{end}}{{define "two"}}two{{end}}`
 func TestMessageForExecuteEmpty(t *testing.T) {
 	// Test a truly empty template.
 	tmpl := New("empty")
-	var b bytes.Buffer
+	var b visitableBuffer
 	err := tmpl.Execute(&b, 0)
 	if err == nil {
 		t.Fatal("expected initial error")
@@ -898,7 +909,7 @@ func TestFinalForPrintf(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var b bytes.Buffer
+	var b visitableBuffer
 	err = tmpl.Execute(&b, 0)
 	if err != nil {
 		t.Fatal(err)
@@ -1016,7 +1027,7 @@ var cmpTests = []cmpTest{
 }
 
 func TestComparison(t *testing.T) {
-	b := new(bytes.Buffer)
+	b := newVisitableBuffer()
 	var cmpStruct = struct {
 		Uthree, Ufour uint
 		NegOne, Three int

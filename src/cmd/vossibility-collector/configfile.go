@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/BurntSushi/toml"
+)
 
 const (
 	// MappingNotAnalyzedKey is the key for the patterns to exclude from
@@ -20,6 +24,17 @@ type serializedConfig struct {
 	Repositories    map[string]RepositoryConfig
 	EventSet        serializedTable `toml:"event_set"`
 	Transformations serializedTable
+}
+
+func parseRawConfiguration(filename string) (*serializedConfig, error) {
+	var config serializedConfig
+	if _, err := toml.DecodeFile(filename, &config); err != nil {
+		return nil, err
+	}
+	if err := config.verify(); err != nil {
+		return nil, err
+	}
+	return &config, nil
 }
 
 // verify enforces several rules about the configuration.

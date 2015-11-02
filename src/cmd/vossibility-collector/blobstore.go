@@ -2,11 +2,8 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/mattbaird/elastigo/api"
-	"github.com/mattbaird/elastigo/core"
 )
 
 // Storage is the target storage for an Index operation.
@@ -27,11 +24,13 @@ const (
 	StoreLiveEvent
 )
 
-// blobStore is capable of storing a blob into a backend.
+// blobStore determines from the Storage and Repository how the Blob should be
+// indexer to a backing blobIndexer. In the process, it might alter the Blob,
+// for example in order to apply transformations.
 type blobStore interface {
-	// Index stores the blob into the specified storage under the provided id
+	// Store saved the blob into the specified storage under the provided id
 	// for a given repository.
-	Index(Storage, *Repository, *Blob) error
+	Store(Storage, *Repository, *Blob) error
 }
 
 // transformingBlobStore applies transformations before forwarding the
@@ -56,7 +55,7 @@ type transformingBlobStore struct {
 
 // Index stores the blob into the specified storage under the provided id for
 // a given repository.
-func (b *transformingBlobStore) Index(storage Storage, repo *Repository, blob *Blob) error {
+func (b *transformingBlobStore) Store(storage Storage, repo *Repository, blob *Blob) error {
 	if trans := b.getTransformation(storage, repo, blob.Type); trans != nil {
 		t, err := trans.Apply(repo, blob)
 		if err != nil {
@@ -66,7 +65,7 @@ func (b *transformingBlobStore) Index(storage Storage, repo *Repository, blob *B
 	}
 
 	// Forward to the backing implementation.
-	return b.impl.Index(storage, repo, blob)
+	return b.impl.Store(storage, repo, blob)
 }
 
 func (b *transformingBlobStore) getTransformation(storage Storage, repo *Repository, event string) *Transformation {
@@ -97,16 +96,19 @@ func (b *transformingBlobStore) getTransformation(storage Storage, repo *Reposit
 
 // NewSimpleBlobStore creates a new simpleBlobStore.
 func NewSimpleBlobStore() blobStore {
-	return &simpleBlobStore{}
+	return &simpleBlobStore{
+		indexer: elasticSearchIndexer{},
+	}
 }
 
 // simpleBlobStore provides basic facilities for writing into Elastic Search.
 type simpleBlobStore struct {
+	indexer blobIndexer
 }
 
 // Index stores the blob into the specified storage under the provided id for
 // a given repository.
-func (b *simpleBlobStore) Index(storage Storage, repo *Repository, blob *Blob) error {
+func (b *simpleBlobStore) Store(storage Storage, repo *Repository, blob *Blob) error {
 	switch storage {
 	// Live is an index containing the webhook events. In this particular case,
 	// we use the delivery id as the document index.
@@ -115,7 +117,7 @@ func (b *simpleBlobStore) Index(storage Storage, repo *Repository, blob *Blob) e
 	case StoreLiveEvent:
 		liveIndex := repo.LiveIndexForTimestamp(blob.Timestamp)
 		log.Debugf("store live event to %s/%s/%s", liveIndex, blob.Type, blob.ID)
-		if _, err := index(liveIndex, blob); err != nil {
+		if err := b.indexer.Index(liveIndex, blob); err != nil {
 			return fmt.Errorf("store live event %s data: %v", blob.ID, err)
 		}
 		// Before falling through, replace the blob with the snapshot data from
@@ -132,7 +134,7 @@ func (b *simpleBlobStore) Index(storage Storage, repo *Repository, blob *Blob) e
 	case StoreCurrentState:
 		stateIndex := repo.StateIndexForTimestamp(blob.Timestamp)
 		log.Debugf("store current state to %s/%s/%s", stateIndex, blob.Type, blob.ID)
-		if _, err := index(stateIndex, blob); err != nil {
+		if err := b.indexer.Index(stateIndex, blob); err != nil {
 			return fmt.Errorf("store current state %s data: %v", blob.ID, err)
 		}
 		fallthrough
@@ -140,21 +142,9 @@ func (b *simpleBlobStore) Index(storage Storage, repo *Repository, blob *Blob) e
 	// closed.
 	case StoreSnapshot:
 		log.Debugf("store snapshot to %s/%s/%s", repo.SnapshotIndex(), blob.Type, blob.ID)
-		if _, err := index(repo.SnapshotIndex(), blob); err != nil {
+		if err := b.indexer.Index(repo.SnapshotIndex(), blob); err != nil {
 			return fmt.Errorf("store snapshot %s data: %v", blob.ID, err)
 		}
 	}
 	return nil
-}
-
-func index(index string, blob *Blob) (api.BaseResponse, error) {
-	// Apparently Elastic Search don't like timezone specifiers other than Z.
-	timestamp := blob.Timestamp.UTC().Format(time.RFC3339)
-	//log.Warnf("Index [%s] add [%s] [%s] [%#v]\n", index, blob.ID, timestamp, *blob.Data)
-	return core.IndexWithParameters(
-		index, blob.Type, blob.ID,
-		"" /* parentId */, 0 /* version */, "" /* op_type */, "", /* routing */
-		timestamp,
-		0 /* ttl */, "" /* percolate */, "" /* timeout */, false /* refresh */, map[string]interface{}{}, /* args */
-		blob.Data)
 }

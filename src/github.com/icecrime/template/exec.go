@@ -14,7 +14,7 @@ import (
 	"text/template/parse"
 )
 
-// VIsitor is called as the tree is walked.
+// Visitor is called as the tree is walked.
 type Visitor interface {
 	Visit(interface{})
 }

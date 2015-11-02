@@ -5,15 +5,6 @@ import (
 	"time"
 )
 
-// TODO Repository {
-//   RepositoryInfo (Name, PrettyName, ...)
-//   EventSet (subscribed events -> transfo)
-//   IssueTransfo
-//   PullRequestTransfo
-// }
-//
-// All transfo specific to the repo instance (gets passed a Context interface)
-
 // Repository represents a GitHub repository with its associated user given
 // name and subscribed events set.
 //

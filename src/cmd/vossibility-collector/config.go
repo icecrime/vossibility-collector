@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/BurntSushi/toml"
 	log "github.com/Sirupsen/logrus"
 	"github.com/mattbaird/elastigo/api"
 )
@@ -75,17 +74,14 @@ func configFromFile(c *serializedConfig) *Config {
 // ParseConfig returns a Config object from the requested filename and any
 // error encountered during load.
 func ParseConfig(filename string) (*Config, error) {
-	var config serializedConfig
-	if _, err := toml.DecodeFile(filename, &config); err != nil {
-		return nil, err
-	}
-	if err := config.verify(); err != nil {
+	config, err := parseRawConfiguration(filename)
+	if err != nil {
 		return nil, err
 	}
 
 	// Configure the Elastic Search client library once and for all.
 	api.Hosts = append(api.Hosts, config.ElasticSearch)
-	return configFromFile(&config), nil
+	return configFromFile(config), nil
 }
 
 // ParseConfigOrDie returns a Config object from the requested filename and

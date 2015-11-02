@@ -7,7 +7,6 @@ package template
 // Tests for mulitple-template parsing and execution.
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 	"testing"
@@ -213,7 +212,7 @@ func TestClone(t *testing.T) {
 		}
 	}
 	// Execute root.
-	var b bytes.Buffer
+	var b visitableBuffer
 	err = root.ExecuteTemplate(&b, "a", 0)
 	if err != nil {
 		t.Fatal(err)
@@ -249,7 +248,7 @@ func TestAddParseTree(t *testing.T) {
 	}
 	added, err := root.AddParseTree("c", tree["c"])
 	// Execute.
-	var b bytes.Buffer
+	var b visitableBuffer
 	err = added.ExecuteTemplate(&b, "a", 0)
 	if err != nil {
 		t.Fatal(err)
