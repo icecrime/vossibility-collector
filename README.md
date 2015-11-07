@@ -19,6 +19,8 @@ build dashboards for your project: a basic example of what can be achieved is sh
 
 # Usage
 
+Also see [Environment setup](#environment-setup)
+
 ```
 NAME:
    vossibility-collector - collect GitHub repository data
@@ -51,7 +53,7 @@ Because different project may want to track different data, and that volumetry o
 projects](https://github.com/docker/docker) makes it unreasonable to store every bits of
 information, vossibility-collector was created to be highly configurable.
 
-The project use the [`toml` file format for its configurations. Example files can be found in the
+The project use the `toml` file format for its configurations. Example files can be found in the
 [`examples/`](https://github.com/icecrime/vossibility-collector/tree/master/examples) directory.
 
 ### Top-level keys
@@ -206,3 +208,105 @@ information about the person's employer and maintainer status.
 # Project state
 
 The project is in a very early state, and most notably lacks testing and CI.
+
+
+# Environment setup
+
+#### Pull docker images
+```
+docker pull nsqio/nsq
+docker pull elasticsearch
+docker pull pblittle/docker-logstash
+docker pull icecrime/vossibility-collector
+```
+
+#### Create the vossibility config file
+Create a [config file](https://github.com/icecrime/vossibility-collector/blob/master/examples/config.toml.example) as noted above.  You can create a local copy in your home directory, and reference it on launch (details below).
+
+#### Create a data mount for NSQ
+`docker create -v /data --name data nsqio/nsq /bin/true`
+
+#### Launch NSQ
+```
+docker run -d --name lookupd -p 4160:4160 -p 4161:4161 nsqio/nsq /nsqlookupd
+docker run -d --name nsqd -p 4150:4150 -p 4151:4151 nsqio/nsq /nsqd --data-path=/data --broadcast-address=172.17.42.1 --lookupd-tcp-address=172.17.42.1:4160
+```
+
+Use `docker inspect lookupd | grep Gateway` to get the IP address, then...
+
+Test with `curl -X GET http://{nsq-gateway-address}:4151/info`.  You should see something like:
+
+```
+{"status_code":200,"status_txt":"OK","data":{"version":"0.3.6","broadcast_address":"172.17.42.1","hostname":"a0c7754cd9bc","http_port":4151,"tcp_port":4150,"start_time":1445533155}}
+```
+
+#### Create NSQ topics
+There should be a topic for each repository listed in `config.toml`.  After launching NSQ, use the following command to create a topic:
+
+`curl -X POST http://{nsq-gateway-address}:4151/topic/create?topic={name-of-topic}`
+
+where `{name-of-topic}` should match the repository topic specified in `config.toml`
+
+Test with `curl -X GET http://{nsq-gateway-address}:4151/stats`.  You should see something like:
+
+```
+nsqd v0.3.6 (built w/go1.5.1)
+start_time 2015-10-22T16:59:15Z
+uptime 2m52.615799031s
+
+Health: OK
+
+   [{name-of-topic}] depth: 0     be-depth: 0     msgs: 0        e2e%:
+
+```
+
+#### Launch ElasticSearch
+`docker run -d --name elasticsearch elasticsearch`
+
+Use `docker inspect elasticsearch | grep IPAddress` to get the IP address, then...
+
+Test with `curl -X GET http://{elasticsearch-ip-address}:9200`.  You should see something like:
+
+```
+{
+  "status" : 200,
+  "name" : "Cable",
+  "cluster_name" : "elasticsearch",
+  "version" : {
+    "number" : "1.7.3",
+    "build_hash" : "05d4530971ef0ea46d0f4fa6ee64dbc8df659682",
+    "build_timestamp" : "2015-10-15T09:14:17Z",
+    "build_snapshot" : false,
+    "lucene_version" : "4.10.4"
+  },
+  "tagline" : "You Know, for Search"
+}
+```
+
+#### Set up Logstash
+`docker run -d --name logstash -e ES_PORT=9200 -p 9200:9200 -p 9292:9292 pblittle/docker-logstash`
+
+Use `ifconfig | grep addr` to find the IP address bound to the host adapter (typically this is the address bound to 127.0.0.1), then...
+
+Test with:
+`curl -X GET http://{host-adapter-nat-address}:9292/index.html#/dashboard/file/default.json`
+You should a block of HTML returned.
+
+#### Set up vossibility
+
+##### Check host network settings
+VirtualBox on MS Windows:
+![vossibility network setup](https://raw.githubusercontent.com/JacquesPerrault/jacquesperrault.github.io/master/images/vossibility-network-settings.jpg)
+
+##### Run vossibility
+`docker run -v {local-config-file}:/etc/config.toml -p 4140:4140 -p 4141:4141 --name vossibility icecrime/vossibility-collector -c "/etc/config.toml" run`
+
+Note that `{local-config-file}` should be something like `/home/docker/config.toml`
+
+#### Launch Kibana
+Give Logstash a minute or so to start up, then open a browser on the host machine to:
+
+`http://{host-adapter-nat-address}:9292/index.html#/dashboard/file/default.json`
+
+You should see something like:
+![Kibana welcome screen](https://raw.githubusercontent.com/JacquesPerrault/jacquesperrault.github.io/master/images/kibana-welcome-screen.jpg)
