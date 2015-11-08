@@ -3,8 +3,8 @@ vossibility-collector
 
 [![Circle CI](https://circleci.com/gh/icecrime/vossibility-collector.svg?style=svg)](https://circleci.com/gh/icecrime/vossibility-collector)
 
-Vossibility-collector is the core component of [vossibility](https://github.com/icecrime/vossibility-stack)
-, a project providing better visibility for your open source project. The project was initially
+Vossibility-collector is the core component of [vossibility](https://github.com/icecrime/vossibility-stack),
+a project providing better visibility for your open source project. The project was initially
 started for [Docker](https://docker.io) but is not tied to it in any way.
 
 # Overview
