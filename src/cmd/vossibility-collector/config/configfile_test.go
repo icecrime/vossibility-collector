@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"strings"
@@ -16,7 +16,7 @@ test2 = "transfo2"
 [transformations.transfo1]
 `
 
-	var config1 serializedConfig
+	var config1 SerializedConfig
 	if _, err := toml.Decode(c1, &config1); err != nil {
 		t.Fatalf("error parsing configuration: %v", err)
 	}
@@ -37,7 +37,7 @@ snapshot_issue = "test"
 [transformations.transfo2]
 `
 
-	var config2 serializedConfig
+	var config2 SerializedConfig
 	if _, err := toml.Decode(c2, &config2); err != nil {
 		t.Fatalf("error parsing configuration: %v", err)
 	}

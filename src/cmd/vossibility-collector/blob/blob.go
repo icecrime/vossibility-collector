@@ -1,29 +1,13 @@
-package main
+package blob
 
 import (
 	"fmt"
 	"strings"
 	"time"
 
+	"cmd/vossibility-collector/config"
+
 	"github.com/bitly/go-simplejson"
-)
-
-const (
-	// MetadataType is the key for the type metadata attribute used when
-	// storing a Blob instance into the Elastic Search backend.
-	MetadataType = "_type"
-
-	// MetadataSnapshotID is the key for the snapshot id metadata attribute
-	// used when storing a Blob instance into the Elastic Search backend. It
-	// represents the Id to be used when storing the snapshoted content of a
-	// blob.
-	MetadataSnapshotID = "_snapshot_id"
-
-	// MetadataSnapshotField is the key for the snapshot id metadata attribute
-	// used when storing a Blob instance into the Elastic Search backend. It
-	// represents the nested object to be used when storing the snapshoted
-	// content of a blob.
-	MetadataSnapshotField = "_snapshot_field"
 )
 
 // Blob is a opaque type representing an arbitrary payload from GitHub.
@@ -112,9 +96,9 @@ func (b *Blob) Snapshot() *Blob {
 
 func (b *Blob) pushSpecialAttribute(key string, value interface{}) error {
 	metaFields := map[string]*string{
-		MetadataType:          &b.Type,
-		MetadataSnapshotID:    &b.SnapshotID,
-		MetadataSnapshotField: &b.SnapshotField,
+		config.MetadataType:          &b.Type,
+		config.MetadataSnapshotID:    &b.SnapshotID,
+		config.MetadataSnapshotField: &b.SnapshotField,
 	}
 	if target, ok := metaFields[key]; !ok {
 		return fmt.Errorf("invalid metadata field %q", key)

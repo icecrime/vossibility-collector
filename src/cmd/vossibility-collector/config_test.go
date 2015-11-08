@@ -1,7 +1,5 @@
 package main
 
-import "testing"
-
 type testRepo struct{}
 
 func (*testRepo) FullName() string {
@@ -12,12 +10,12 @@ func (*testRepo) PrettyName() string {
 	return "repository (user:repo)"
 }
 
+/*
 var testContext = Context{
 	Repository: &testRepo{},
 }
 
 func TestApplyNestedTransformation(t *testing.T) {
-	/*
 		s := "./testdata/pull_request_event_with_labels.json"
 		f, err := ioutil.ReadFile(s)
 		if err != nil {
@@ -52,9 +50,9 @@ func TestApplyNestedTransformation(t *testing.T) {
 				}
 
 				json.NewEncoder(os.Stdout).Encode(r)
-	*/
+*/
 
-	/*
+/*
 		res, err := simplejson.NewJson(r.Data)
 		if err != nil {
 			t.Fatalf("error unserializing transformed result: %v", err)
@@ -73,5 +71,5 @@ func TestApplyNestedTransformation(t *testing.T) {
 					}
 				}
 			}
-	*/
 }
+*/

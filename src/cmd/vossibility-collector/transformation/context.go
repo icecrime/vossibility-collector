@@ -1,4 +1,4 @@
-package main
+package transformation
 
 // Context is provided to transformations as a way to pass additional data to
 // existing templates.

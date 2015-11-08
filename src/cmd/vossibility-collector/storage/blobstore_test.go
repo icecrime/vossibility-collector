@@ -1,9 +1,14 @@
-package main
+package storage
 
-import "testing"
+import (
+	"testing"
+
+	"cmd/vossibility-collector/blob"
+	"cmd/vossibility-collector/config"
+)
 
 var testRepository = Repository{
-	RepositoryConfig: RepositoryConfig{
+	RepositoryConfig: config.RepositoryConfig{
 		User:  "icecrime",
 		Repo:  "repository",
 		Topic: "topic",
@@ -14,12 +19,12 @@ var testRepository = Repository{
 
 type indexCall struct {
 	Destination string
-	Blob        *Blob
+	Blob        *blob.Blob
 }
 
 type testIndexer []indexCall
 
-func (t *testIndexer) Index(destination string, blob *Blob) error {
+func (t *testIndexer) Index(destination string, blob *blob.Blob) error {
 	*t = append(*t, indexCall{destination, blob})
 	return nil
 }
@@ -32,7 +37,7 @@ func (t *testIndexer) Reset() {
 	*t = []indexCall{}
 }
 
-func simpleBlobStoreSetup() (blobStore, *testIndexer) {
+func simpleBlobStoreSetup() (BlobStore, *testIndexer) {
 	s := simpleBlobStore{}
 	indexer := testIndexer{}
 	s.indexer = &indexer
@@ -41,7 +46,7 @@ func simpleBlobStoreSetup() (blobStore, *testIndexer) {
 
 func TestSimpleBlobStoreLiveWithoutSnapshot(t *testing.T) {
 	s, indexer := simpleBlobStoreSetup()
-	b := NewBlob("event", "id")
+	b := blob.NewBlob("event", "id")
 	if err := s.Store(StoreLiveEvent, &testRepository, b); err != nil {
 		t.Fatalf("failed to store blob: %v", err)
 	}
@@ -54,9 +59,9 @@ func TestSimpleBlobStoreCascading(t *testing.T) {
 	s, indexer := simpleBlobStoreSetup()
 
 	// Create a snapshottable blob.
-	b := NewBlob("event", "id")
-	b.Push(MetadataSnapshotID, "snapshot_id")
-	b.Push(MetadataSnapshotField, "snapshot_field")
+	b := blob.NewBlob("event", "id")
+	b.Push(config.MetadataSnapshotID, "snapshot_id")
+	b.Push(config.MetadataSnapshotField, "snapshot_field")
 
 	// Verify that storing to StoreSnapshot doesn't cascade to any other store.
 	if err := s.Store(StoreSnapshot, &testRepository, b); err != nil {

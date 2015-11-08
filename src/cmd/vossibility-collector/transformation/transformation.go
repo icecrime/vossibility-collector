@@ -1,8 +1,11 @@
-package main
+package transformation
 
 import (
 	"fmt"
 	"strings"
+
+	"cmd/vossibility-collector/blob"
+	"cmd/vossibility-collector/config"
 
 	"object/template"
 )
@@ -31,7 +34,7 @@ type Transformations map[string]*Transformation
 
 // TransformationsFromConfig creates a transformation from a flat textual
 // configuration description.
-func TransformationsFromConfig(context Context, config serializedTable) (Transformations, error) {
+func TransformationsFromConfig(context Context, config config.SerializedTable) (Transformations, error) {
 	res := Transformations(make(map[string]*Transformation))
 	funcs := template.FuncMap{
 		"apply_transformation": res.fnApplyTransformation,
@@ -92,24 +95,14 @@ func TransformationFromConfig(event string, config map[string]string, funcs temp
 // Apply takes a serialized JSON payload and returns a Blob on which the
 // transformation has been applied, as well as a collection of metadata
 // corresponding to fields prefixed by an underscore.
-func (t Transformation) Apply(repo *Repository, b *Blob) (*Blob, error) {
+func (t Transformation) Apply(context Context, b *blob.Blob) (*blob.Blob, error) {
 	m, err := b.Data.Map()
 	if err != nil {
 		return nil, err
 	}
 
-	// Insert some context information in the input object. This is not super
-	// clean, but there is unfortunately no way to do otherwise, as a function
-	// would have to be specific to that particular template instance (hence
-	// forcing us to create independent sets of templates for each repo).
-	m["_context"] = struct {
-		Repository *Repository
-	}{
-		Repository: repo,
-	}
-
 	// Create the result blob, but inherit from the parent's metadata.
-	res := NewBlob(b.Type, b.ID)
+	res := blob.NewBlob(b.Type, b.ID)
 	res.Timestamp = b.Timestamp
 
 	// For each destination field defined in the transformation, apply the

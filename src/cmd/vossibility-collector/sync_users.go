@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 
+	"cmd/vossibility-collector/storage"
+
 	"github.com/BurntSushi/toml"
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
@@ -27,14 +29,14 @@ var syncUsersCommand = cli.Command{
 func doSyncUsers(c *cli.Context) {
 	_ = ParseConfigOrDie(c.GlobalString("config"))
 
-	var userData map[string]UserData
+	var userData map[string]storage.UserData
 	if _, err := toml.DecodeFile(c.String("file"), &userData); err != nil {
 		log.Fatal(err)
 	}
 
 	for login, data := range userData {
 		fmt.Printf("Saving data for %q: %#v\n", login, data)
-		if _, err := core.Index(UserIndex, UserType, login, nil, data); err != nil {
+		if _, err := core.Index(storage.UserIndex, storage.UserType, login, nil, data); err != nil {
 			log.Errorf("indexing data for %q; %v", login, err)
 		}
 	}

@@ -7,6 +7,9 @@ import (
 	"syscall"
 	"time"
 
+	"cmd/vossibility-collector/config"
+	"cmd/vossibility-collector/storage"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/google/go-github/github"
@@ -53,14 +56,14 @@ func doRunCommand(c *cli.Context) {
 	}
 }
 
-func createQueues(client *github.Client, config *Config, lock *sync.RWMutex) []*Queue {
+func createQueues(client *github.Client, c *Config, lock *sync.RWMutex) []*Queue {
 	// Subscribe to the message queues for each repository.
-	queues := make([]*Queue, 0, len(config.Repositories))
-	for _, repo := range config.Repositories {
-		qconf := &NSQConfig{
+	queues := make([]*Queue, 0, len(c.Repositories))
+	for _, repo := range c.Repositories {
+		qconf := &config.NSQConfig{
 			Topic:   repo.Topic,
-			Channel: config.NSQ.Channel,
-			Lookupd: config.NSQ.Lookupd,
+			Channel: c.NSQ.Channel,
+			Lookupd: c.NSQ.Lookupd,
 		}
 		queue, err := NewQueue(qconf, NewMessageHandler(client, repo, lock))
 		if err != nil {
@@ -92,7 +95,7 @@ func monitorQueues(queues []*Queue) <-chan struct{} {
 	return stopChan
 }
 
-func resetNextTickTime(p PeriodicSync) time.Duration {
+func resetNextTickTime(p config.PeriodicSync) time.Duration {
 	nextTickTime := p.Next()
 	log.Infof("Next sync in %s (%s)", nextTickTime, time.Now().Add(nextTickTime).Format("Jan 2, 2006 at 15:04:05"))
 	return nextTickTime
@@ -100,7 +103,7 @@ func resetNextTickTime(p PeriodicSync) time.Duration {
 
 func runPeriodicSync(client *github.Client, config *Config) {
 	// Get the list of repositories.
-	repos := make([]*Repository, 0, len(config.Repositories))
+	repos := make([]*storage.Repository, 0, len(config.Repositories))
 	for _, r := range config.Repositories {
 		repos = append(repos, r)
 	}
@@ -110,9 +113,9 @@ func runPeriodicSync(client *github.Client, config *Config) {
 	syncOptions := DefaultSyncOptions
 	syncOptions.SleepPerPage = 10 // TODO Tired of getting blacklisted :-)
 	syncOptions.State = GitHubStateFilterOpened
-	syncOptions.Storage = StoreCurrentState
+	syncOptions.Storage = storage.StoreCurrentState
 
 	// Create the blobStore and run the syncCommand.
-	blobStore := NewTransformingBlobStore()
+	blobStore := storage.NewTransformingBlobStore()
 	NewSyncCommandWithOptions(client, blobStore, &syncOptions).Run(repos)
 }

@@ -5,6 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"cmd/vossibility-collector/blob"
+	"cmd/vossibility-collector/storage"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/google/go-github/github"
 )
@@ -46,7 +49,7 @@ const (
 
 	// DefaultStorage is the default destination store for the synchronization
 	// job.
-	DefaultStorage = StoreSnapshot
+	DefaultStorage = storage.StoreSnapshot
 
 	// DefaultFilterMode is the default filtering mode for retrieving issues.
 	DefaultFilterMode = GitHubStateFilterOpened
@@ -65,7 +68,7 @@ var DefaultSyncOptions = syncOptions{
 
 // syncCmd is a synchronization job.
 type syncCmd struct {
-	blobStore blobStore
+	blobStore storage.BlobStore
 	client    *github.Client
 	options   *syncOptions
 	toFetch   chan github.Issue
@@ -101,11 +104,11 @@ type syncOptions struct {
 	State GitHubStateFilter
 
 	// Storage is the type of Storage to Index into.
-	Storage Storage
+	Storage storage.Storage
 }
 
 // NewSyncCommand creates a default configured synchronization job.
-func NewSyncCommand(client *github.Client, blobStore blobStore) *syncCmd {
+func NewSyncCommand(client *github.Client, blobStore storage.BlobStore) *syncCmd {
 	return NewSyncCommandWithOptions(client, blobStore, &DefaultSyncOptions)
 }
 
@@ -113,7 +116,7 @@ func NewSyncCommand(client *github.Client, blobStore blobStore) *syncCmd {
 // options set. Be careful when using that function to give meaningful values
 // to all options: it is recommand to start from a copy of DefaultSyncOptions
 // and modify what needs to be from there.
-func NewSyncCommandWithOptions(client *github.Client, blobStore blobStore, opt *syncOptions) *syncCmd {
+func NewSyncCommandWithOptions(client *github.Client, blobStore storage.BlobStore, opt *syncOptions) *syncCmd {
 	return &syncCmd{
 		blobStore: blobStore,
 		client:    client,
@@ -133,7 +136,7 @@ func NewSyncCommandWithOptions(client *github.Client, blobStore blobStore, opt *
 // Isolated errors (failure to retrieve a particular item, or failure to write
 // to the backend) will not interrupt the job. Only the inability to list items
 // from GitHub can interrupt prematurely (such as in case of rate limiting).
-func (s *syncCmd) Run(repos []*Repository) {
+func (s *syncCmd) Run(repos []*storage.Repository) {
 	for _, r := range repos {
 		for i := 0; i != s.options.NumIndexProcs; i++ {
 			s.wgIndex.Add(1)
@@ -184,7 +187,7 @@ func (s *syncCmd) Run(repos []*Repository) {
 // some of which pull requests don't (in particular labels), but we still need
 // the information that are held by the pull request itself (such as additions
 // and deletions).
-func (s *syncCmd) fetchRepositoryItems(r *Repository, from, sleepPerPage int, stateFilter GitHubStateFilter) error {
+func (s *syncCmd) fetchRepositoryItems(r *storage.Repository, from, sleepPerPage int, stateFilter GitHubStateFilter) error {
 	count := 0
 	for page := from/s.options.PerPage + 1; page != 0; {
 		iss, resp, err := s.client.Issues.ListByRepo(r.User, r.Repo, &github.IssueListByRepoOptions{
@@ -223,7 +226,7 @@ func (s *syncCmd) fetchRepositoryItems(r *Repository, from, sleepPerPage int, st
 // fetchingProc takes input from the toFetch channel and fetches additional
 // data for items were applicable. In particular, it gets the pull request
 // information for issues which are indeed pull requests.
-func (s *syncCmd) fetchingProc(r *Repository) {
+func (s *syncCmd) fetchingProc(r *storage.Repository) {
 	for i := range s.toFetch {
 		log.Debugf("fetching associated pull request for issue %d", *i.Number)
 		if item, err := pullRequestFromIssue(s.client, r, &i); err == nil {
@@ -238,7 +241,7 @@ func (s *syncCmd) fetchingProc(r *Repository) {
 
 // indexingProc takes input from the toIndex channel and pushes the content to
 // the Elastic Search backend.
-func (s *syncCmd) indexingProc(r *Repository) {
+func (s *syncCmd) indexingProc(r *storage.Repository) {
 	for i := range s.toIndex {
 		// We have to serialize back to JSON in order to transform the payload
 		// as we wish. This could be optimized out if we were to read the raw
@@ -250,7 +253,7 @@ func (s *syncCmd) indexingProc(r *Repository) {
 		}
 		// We create a blob from the payload, which essentially deserialized
 		// the object back from JSON...
-		b, err := NewBlobFromPayload(i.Type(), i.ID(), payload)
+		b, err := blob.NewBlobFromPayload(i.Type(), i.ID(), payload)
 		if err != nil {
 			log.Errorf("creating blob from payload %q (%s): %v", i.ID(), i.Type(), err)
 			continue

@@ -7,6 +7,10 @@ import (
 	"sync"
 	"time"
 
+	"cmd/vossibility-collector/blob"
+	"cmd/vossibility-collector/config"
+	"cmd/vossibility-collector/storage"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/bitly/go-nsq"
 	"github.com/google/go-github/github"
@@ -17,19 +21,19 @@ const (
 	LabelsAttribute = "pull_request.labels"
 )
 
-func NewMessageHandler(client *github.Client, repo *Repository, pauseLock *sync.RWMutex) *MessageHandler {
+func NewMessageHandler(client *github.Client, repo *storage.Repository, pauseLock *sync.RWMutex) *MessageHandler {
 	return &MessageHandler{
 		client:    client,
 		repo:      repo,
-		store:     NewTransformingBlobStore(),
+		store:     storage.NewTransformingBlobStore(),
 		pauseLock: pauseLock,
 	}
 }
 
 type MessageHandler struct {
 	client *github.Client
-	repo   *Repository
-	store  blobStore
+	repo   *storage.Repository
+	store  storage.BlobStore
 
 	// The RWMutex allows us to implement pausing: all MessageHandler share the
 	// same instance and take a read lock when they start handling a message.
@@ -64,7 +68,7 @@ func (m *MessageHandler) handleEvent(timestamp int64, event, delivery string, pa
 	log.Infof("receive event %q for repository %q", event, m.repo.PrettyName())
 
 	// Create the blob object and complete any data that needs to be.
-	b, err := NewBlobFromPayload(event, delivery, payload)
+	b, err := blob.NewBlobFromPayload(event, delivery, payload)
 	if err = m.prepareForStorage(b); err != nil {
 		log.Errorf("preparing event %q for storage: %v", event, err)
 		return err
@@ -73,11 +77,11 @@ func (m *MessageHandler) handleEvent(timestamp int64, event, delivery string, pa
 	// Take the timestamp from the NSQ Message (useful if the queue was put on
 	// hold or if the process is catching up). This timestamp is a UnixNano.
 	b.Timestamp = time.Unix(0, timestamp)
-	return m.store.Store(StoreLiveEvent, m.repo, b)
+	return m.store.Store(storage.StoreLiveEvent, m.repo, b)
 }
 
-func (m *MessageHandler) prepareForStorage(o *Blob) error {
-	if o.Type != EvtPullRequest || o.HasAttribute(LabelsAttribute) {
+func (m *MessageHandler) prepareForStorage(o *blob.Blob) error {
+	if o.Type != config.EvtPullRequest || o.HasAttribute(LabelsAttribute) {
 		return nil
 	}
 	number := o.Data.Get("number").MustInt()

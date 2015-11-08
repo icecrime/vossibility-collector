@@ -1,6 +1,8 @@
-package main
+package transformation
 
-import "time"
+import (
+	"time"
+)
 
 // fnContext is a constant function passed down to templates as a mean to
 // access contextual information on the data being transformed (e.g.,
@@ -36,9 +38,12 @@ func fnUserData(login string) interface{} {
 	// Ignore any error to retrieve the user data: we don't have entries for
 	// most of our users, and only store information for those who have
 	// particular status (employees and/or maintainers).
+	/* TODO
 	us := &userStore{}
 	if ud, err := us.Get(login); err == nil {
 		return ud
 	}
 	return &UserData{Login: login}
+	*/
+	return nil
 }

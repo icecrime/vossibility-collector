@@ -1,8 +1,11 @@
-package main
+package storage
 
 import (
 	"fmt"
 	"time"
+
+	"cmd/vossibility-collector/config"
+	"cmd/vossibility-collector/transformation"
 )
 
 // Repository represents a GitHub repository with its associated user given
@@ -15,7 +18,7 @@ import (
 type Repository struct {
 	// RepositoryConfig is the configuration defined for this particular
 	// repository.
-	RepositoryConfig
+	config.RepositoryConfig
 
 	// GivenName is the symbolic name for the repository as defined in the
 	// configuration.
@@ -27,7 +30,7 @@ type Repository struct {
 
 	// PeriodicSync is the synchronization periodicity for this particular
 	// repository.
-	PeriodicSync PeriodicSync
+	PeriodicSync config.PeriodicSync
 
 	// Transformations is the collection of transformations instantiated for
 	// this particular repository.
@@ -37,19 +40,19 @@ type Repository struct {
 	// difficult thing to anticipate, and is made even more complicated by the
 	// fact that a given transformation can call another one through the
 	// provided "apply_transformation" function.
-	Transformations Transformations
+	Transformations transformation.Transformations
 }
 
-func NewRepository(givenName string, repoConfig *RepositoryConfig, fullConfig *serializedConfig) (*Repository, error) {
+func NewRepository(givenName string, repoConfig *config.RepositoryConfig, fullConfig *config.SerializedConfig) (*Repository, error) {
 	r := &Repository{
-		EventSet:         make(map[string]*Transformation),
+		EventSet:         make(map[string]*transformation.Transformation),
 		GivenName:        givenName,
 		RepositoryConfig: *repoConfig,
 	}
 
 	// Create repository specific transformations.
-	context := struct{ Repository RepositoryInfo }{Repository: r}
-	transformations, err := TransformationsFromConfig(context, fullConfig.Transformations)
+	context := struct{ Repository transformation.RepositoryInfo }{Repository: r}
+	transformations, err := transformation.TransformationsFromConfig(context, fullConfig.Transformations)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +129,7 @@ func (r *Repository) StateIndex() string {
 func (r *Repository) StateIndexForTimestamp(timestamp time.Time) string {
 	// The state index depends on the chosen sync periodicity.
 	format := hourlyPeriodFormat(timestamp)
-	if r.PeriodicSync == SyncDaily || r.PeriodicSync == SyncWeekly {
+	if r.PeriodicSync == config.SyncDaily || r.PeriodicSync == config.SyncWeekly {
 		format = dailyPeriodFormat(timestamp)
 	}
 	return fmt.Sprintf("%sstate-%s", r.IndexPrefix(), format)

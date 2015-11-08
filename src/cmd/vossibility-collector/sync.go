@@ -3,6 +3,8 @@ package main
 import (
 	"strings"
 
+	"cmd/vossibility-collector/storage"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 )
@@ -24,7 +26,7 @@ var syncCommand = cli.Command{
 func doSyncCommand(c *cli.Context) {
 	config := ParseConfigOrDie(c.GlobalString("config"))
 	client := NewClient(config)
-	blobStore := NewTransformingBlobStore()
+	blobStore := storage.NewTransformingBlobStore()
 
 	// Get the list of repositories from command-line (defaults to all).
 	repoToSync := c.Args()
@@ -36,7 +38,7 @@ func doSyncCommand(c *cli.Context) {
 	}
 
 	// Get the repositories instances from their given names.
-	repos := make([]*Repository, 0, len(repoToSync))
+	repos := make([]*storage.Repository, 0, len(repoToSync))
 	for _, givenName := range repoToSync {
 		r, ok := config.Repositories[givenName]
 		if !ok {
@@ -51,7 +53,7 @@ func doSyncCommand(c *cli.Context) {
 	syncOptions.From = c.Int("from")
 	syncOptions.SleepPerPage = c.Int("sleep")
 	syncOptions.State = GitHubStateFilterAll
-	syncOptions.Storage = StoreSnapshot
+	syncOptions.Storage = storage.StoreSnapshot
 
 	// Create and run the synchronization job.
 	log.Warnf("running sync jobs on repositories %s", strings.Join(repoToSync, ", "))

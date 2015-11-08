@@ -3,14 +3,10 @@ package main
 import (
 	"strconv"
 
-	"github.com/google/go-github/github"
-)
+	"cmd/vossibility-collector/config"
+	"cmd/vossibility-collector/storage"
 
-const (
-	GitHubTypeIssue         = "issue"
-	GitHubTypePullRequest   = "pull_request"
-	SnapshotIssueType       = "snapshot_issue"
-	SnapshotPullRequestType = "snapshot_pull_request"
+	"github.com/google/go-github/github"
 )
 
 type partialMessage struct {
@@ -35,7 +31,7 @@ func (g githubPR) ID() string {
 }
 
 func (g githubPR) Type() string {
-	return GitHubTypePullRequest
+	return config.GitHubTypePullRequest
 }
 
 type githubIssue github.Issue
@@ -45,7 +41,7 @@ func (g githubIssue) ID() string {
 }
 
 func (g githubIssue) Type() string {
-	return GitHubTypeIssue
+	return config.GitHubTypeIssue
 }
 
 type githubEnrichedPR struct {
@@ -58,10 +54,10 @@ func (g *githubEnrichedPR) ID() string {
 }
 
 func (g *githubEnrichedPR) Type() string {
-	return GitHubTypePullRequest
+	return config.GitHubTypePullRequest
 }
 
-func pullRequestFromIssue(cli *github.Client, repo *Repository, i *github.Issue) (githubIndexedItem, error) {
+func pullRequestFromIssue(cli *github.Client, repo *storage.Repository, i *github.Issue) (githubIndexedItem, error) {
 	pr, _, err := cli.PullRequests.Get(repo.User, repo.Repo, *i.Number)
 	if err != nil {
 		return nil, err

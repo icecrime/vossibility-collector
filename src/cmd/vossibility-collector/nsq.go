@@ -1,12 +1,16 @@
 package main
 
-import "github.com/bitly/go-nsq"
+import (
+	"cmd/vossibility-collector/config"
+
+	"github.com/bitly/go-nsq"
+)
 
 type Queue struct {
 	Consumer *nsq.Consumer
 }
 
-func NewQueue(config *NSQConfig, handler nsq.Handler) (*Queue, error) {
+func NewQueue(config *config.NSQConfig, handler nsq.Handler) (*Queue, error) {
 	consumer, err := nsq.NewConsumer(config.Topic, config.Channel, nsq.NewConfig())
 	if err != nil {
 		return nil, err

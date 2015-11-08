@@ -1,7 +1,11 @@
-package main
+package storage
 
 import (
 	"fmt"
+
+	"cmd/vossibility-collector/blob"
+	"cmd/vossibility-collector/config"
+	"cmd/vossibility-collector/transformation"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -24,40 +28,41 @@ const (
 	StoreLiveEvent
 )
 
-// blobStore determines from the Storage and Repository how the Blob should be
+// BlobStore determines from the Storage and Repository how the Blob should be
 // indexer to a backing blobIndexer. In the process, it might alter the Blob,
 // for example in order to apply transformations.
-type blobStore interface {
+type BlobStore interface {
 	// Store saved the blob into the specified storage under the provided id
 	// for a given repository.
-	Store(Storage, *Repository, *Blob) error
+	Store(Storage, *Repository, *blob.Blob) error
 }
 
 // transformingBlobStore applies transformations before forwarding the
 // resulting blob to a simpleBlobStore.
 type transformations struct {
-	transformations Transformations
+	transformations transformation.Transformations
 }
 
 // NewTransformingBlobStore creates a new transformingBlobStore backed by a
 // simpleBlobStore.
-func NewTransformingBlobStore() blobStore {
+func NewTransformingBlobStore() BlobStore {
 	return &transformingBlobStore{
 		impl: NewSimpleBlobStore(),
 	}
 }
 
-// transformingBlobStore implements blobStore by applying transformations
-// before forwarding the resulting blob to a backing blobStore instance.
+// transformingBlobStore implements BlobStore by applying transformations
+// before forwarding the resulting blob to a backing BlobStore instance.
 type transformingBlobStore struct {
-	impl blobStore
+	impl BlobStore
 }
 
 // Index stores the blob into the specified storage under the provided id for
 // a given repository.
-func (b *transformingBlobStore) Store(storage Storage, repo *Repository, blob *Blob) error {
+func (b *transformingBlobStore) Store(storage Storage, repo *Repository, blob *blob.Blob) error {
 	if trans := b.getTransformation(storage, repo, blob.Type); trans != nil {
-		t, err := trans.Apply(repo, blob)
+		ctx := transformation.Context{Repository: repo}
+		t, err := trans.Apply(ctx, blob)
 		if err != nil {
 			return fmt.Errorf("applying transformation to event %q: %v", blob.Type, err)
 		}
@@ -68,7 +73,7 @@ func (b *transformingBlobStore) Store(storage Storage, repo *Repository, blob *B
 	return b.impl.Store(storage, repo, blob)
 }
 
-func (b *transformingBlobStore) getTransformation(storage Storage, repo *Repository, event string) *Transformation {
+func (b *transformingBlobStore) getTransformation(storage Storage, repo *Repository, event string) *transformation.Transformation {
 	// Live and snapshot data have overlapping types: we can received a
 	// "pull_request" live event for a new pull request being opened, as well
 	// as a "pull_request" snapshot during a sync operation.
@@ -83,10 +88,10 @@ func (b *transformingBlobStore) getTransformation(storage Storage, repo *Reposit
 	// This is not a live event: we have hardcoded transformations for the
 	// issues and pull requests data types.
 	switch event {
-	case GitHubTypeIssue:
-		return repo.EventSet[SnapshotIssueType]
-	case GitHubTypePullRequest:
-		return repo.EventSet[SnapshotPullRequestType]
+	case config.GitHubTypeIssue:
+		return repo.EventSet[config.SnapshotIssueType]
+	case config.GitHubTypePullRequest:
+		return repo.EventSet[config.SnapshotPullRequestType]
 	default:
 		// No transformation for that event type.
 		log.Warnf("no transformation found for event type %q", event)
@@ -95,7 +100,7 @@ func (b *transformingBlobStore) getTransformation(storage Storage, repo *Reposit
 }
 
 // NewSimpleBlobStore creates a new simpleBlobStore.
-func NewSimpleBlobStore() blobStore {
+func NewSimpleBlobStore() BlobStore {
 	return &simpleBlobStore{
 		indexer: elasticSearchIndexer{},
 	}
@@ -108,7 +113,7 @@ type simpleBlobStore struct {
 
 // Index stores the blob into the specified storage under the provided id for
 // a given repository.
-func (b *simpleBlobStore) Store(storage Storage, repo *Repository, blob *Blob) error {
+func (b *simpleBlobStore) Store(storage Storage, repo *Repository, blob *blob.Blob) error {
 	switch storage {
 	// Live is an index containing the webhook events. In this particular case,
 	// we use the delivery id as the document index.

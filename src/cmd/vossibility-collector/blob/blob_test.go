@@ -1,10 +1,12 @@
-package main
+package blob
 
 import (
 	"bytes"
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"cmd/vossibility-collector/config"
 )
 
 func TestBlobAttributes(t *testing.T) {
@@ -44,10 +46,10 @@ func TestBlobSpecialAttributes(t *testing.T) {
 	if err := b.Push("_bad", "test"); err == nil || !strings.Contains(err.Error(), "invalid metadata field") {
 		t.Fatalf(`expected "invalid metadata field" error, got %v`, err)
 	}
-	if err := b.Push(MetadataType, true); err == nil || !strings.Contains(err.Error(), "bad value") {
+	if err := b.Push(config.MetadataType, true); err == nil || !strings.Contains(err.Error(), "bad value") {
 		t.Fatalf(`exepected "bad value" error. got %v`, err)
 	}
-	if err := b.Push(MetadataType, "test"); err != nil {
+	if err := b.Push(config.MetadataType, "test"); err != nil {
 		t.Fatalf("failed to set type metadata: %v", err)
 	}
 }
@@ -61,8 +63,8 @@ func TestBlobSnapshot(t *testing.T) {
 	payload := map[string]interface{}{"foo": "bar", "number": 123}
 	b.Push("dummy", false)
 	b.Push("snapshot_field", payload)
-	b.Push(MetadataSnapshotID, "number")
-	b.Push(MetadataSnapshotField, "snapshot_field")
+	b.Push(config.MetadataSnapshotID, "number")
+	b.Push(config.MetadataSnapshotField, "snapshot_field")
 
 	var s *Blob
 	if s = b.Snapshot(); b == nil {

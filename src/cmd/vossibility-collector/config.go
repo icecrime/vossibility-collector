@@ -1,59 +1,35 @@
 package main
 
 import (
+	"cmd/vossibility-collector/config"
+	"cmd/vossibility-collector/storage"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/mattbaird/elastigo/api"
 )
-
-// NSQConfig is the configuration for NSQ.
-type NSQConfig struct {
-	Topic   string `json:"topic"`
-	Channel string `json:"channel"`
-	Lookupd string `json:"lookup_address"`
-}
-
-// RepositoryConfig is the configuration for a given repository.
-type RepositoryConfig struct {
-	User       string
-	Repo       string
-	Topic      string
-	StartIndex int `toml:"start_index"`
-
-	// events is kept internal: use the EventSetName() function which properly
-	// takes the DefaultEventSet into account.
-	events string `toml:"event_set"`
-}
-
-// EventSetName returns the name of subscribed events set for the repository.
-func (r RepositoryConfig) EventSetName() string {
-	if r.events == "" {
-		return DefaultEventSet
-	}
-	return r.events
-}
 
 // Config is the global configuration for the tool.
 type Config struct {
 	ElasticSearch       string
 	GitHubAPIToken      string
-	PeriodicSync        PeriodicSync
-	NSQ                 NSQConfig
+	PeriodicSync        config.PeriodicSync
+	NSQ                 config.NSQConfig
 	NotAnalyzedPatterns []string
-	Repositories        map[string]*Repository
+	Repositories        map[string]*storage.Repository
 }
 
 // configFromFile creates a Config object from its serialized counterpart.
-func configFromFile(c *serializedConfig) *Config {
+func configFromFile(c *config.SerializedConfig) *Config {
 	out := &Config{
 		ElasticSearch:       c.ElasticSearch,
 		GitHubAPIToken:      c.GitHubAPIToken,
 		NSQ:                 c.NSQ,
-		NotAnalyzedPatterns: c.Mapping[MappingNotAnalyzedKey],
-		Repositories:        make(map[string]*Repository),
+		NotAnalyzedPatterns: c.Mapping[config.MappingNotAnalyzedKey],
+		Repositories:        make(map[string]*storage.Repository),
 	}
 
 	// Create periodic sync.
-	p, err := NewPeriodicSync(c.PeriodicSync)
+	p, err := config.NewPeriodicSync(c.PeriodicSync)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -61,7 +37,7 @@ func configFromFile(c *serializedConfig) *Config {
 
 	// Create repositories.
 	for name, config := range c.Repositories {
-		repo, err := NewRepository(name, &config, c)
+		repo, err := storage.NewRepository(name, &config, c)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -74,7 +50,7 @@ func configFromFile(c *serializedConfig) *Config {
 // ParseConfig returns a Config object from the requested filename and any
 // error encountered during load.
 func ParseConfig(filename string) (*Config, error) {
-	config, err := parseRawConfiguration(filename)
+	config, err := config.ParseRawConfiguration(filename)
 	if err != nil {
 		return nil, err
 	}
