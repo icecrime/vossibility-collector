@@ -8,11 +8,13 @@ import (
 	"time"
 
 	"cmd/vossibility-collector/config"
+	"cmd/vossibility-collector/github"
 	"cmd/vossibility-collector/storage"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/bitly/go-nsq"
 	"github.com/codegangsta/cli"
-	"github.com/google/go-github/github"
+	gh "github.com/google/go-github/github"
 )
 
 var runCommand = cli.Command{
@@ -23,7 +25,7 @@ var runCommand = cli.Command{
 
 func doRunCommand(c *cli.Context) {
 	config := ParseConfigOrDie(c.GlobalString("config"))
-	client := NewClient(config)
+	client := github.NewClient(config.GitHubAPIToken)
 
 	// Create and start monitoring queues.
 	lock := sync.RWMutex{}
@@ -56,7 +58,25 @@ func doRunCommand(c *cli.Context) {
 	}
 }
 
-func createQueues(client *github.Client, c *Config, lock *sync.RWMutex) []*Queue {
+type Queue struct {
+	Consumer *nsq.Consumer
+}
+
+func NewQueue(config *config.NSQConfig, handler nsq.Handler) (*Queue, error) {
+	consumer, err := nsq.NewConsumer(config.Topic, config.Channel, nsq.NewConfig())
+	if err != nil {
+		return nil, err
+	}
+
+	consumer.AddHandler(handler)
+	if err := consumer.ConnectToNSQLookupd(config.Lookupd); err != nil {
+		return nil, err
+	}
+
+	return &Queue{Consumer: consumer}, nil
+}
+
+func createQueues(client *gh.Client, c *Config, lock *sync.RWMutex) []*Queue {
 	// Subscribe to the message queues for each repository.
 	queues := make([]*Queue, 0, len(c.Repositories))
 	for _, repo := range c.Repositories {
@@ -101,7 +121,7 @@ func resetNextTickTime(p config.PeriodicSync) time.Duration {
 	return nextTickTime
 }
 
-func runPeriodicSync(client *github.Client, config *Config) {
+func runPeriodicSync(client *gh.Client, config *Config) {
 	// Get the list of repositories.
 	repos := make([]*storage.Repository, 0, len(config.Repositories))
 	for _, r := range config.Repositories {
@@ -110,12 +130,12 @@ func runPeriodicSync(client *github.Client, config *Config) {
 
 	// Run a default synchronization job, with the storage type set to
 	// StoreCurrentState (which corresponds to our rolling storage).
-	syncOptions := DefaultSyncOptions
+	syncOptions := github.DefaultSyncOptions
 	syncOptions.SleepPerPage = 10 // TODO Tired of getting blacklisted :-)
-	syncOptions.State = GitHubStateFilterOpened
+	syncOptions.State = github.GitHubStateFilterOpened
 	syncOptions.Storage = storage.StoreCurrentState
 
 	// Create the blobStore and run the syncCommand.
 	blobStore := storage.NewTransformingBlobStore()
-	NewSyncCommandWithOptions(client, blobStore, &syncOptions).Run(repos)
+	github.NewSyncCommandWithOptions(client, blobStore, &syncOptions).Run(repos)
 }

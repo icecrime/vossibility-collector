@@ -4,6 +4,8 @@ import (
 	"os"
 	"text/template"
 
+	"cmd/vossibility-collector/github"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 )
@@ -27,7 +29,7 @@ var limitsCommand = cli.Command{
 
 func doLimitsCommand(c *cli.Context) {
 	config := ParseConfigOrDie(c.GlobalString("config"))
-	client := NewClient(config)
+	client := github.NewClient(config.GitHubAPIToken)
 
 	rl, _, err := client.RateLimits()
 	if err != nil {

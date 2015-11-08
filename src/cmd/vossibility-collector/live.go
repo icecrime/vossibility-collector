@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"cmd/vossibility-collector/blob"
-	"cmd/vossibility-collector/config"
+	"cmd/vossibility-collector/github"
 	"cmd/vossibility-collector/storage"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/bitly/go-nsq"
-	"github.com/google/go-github/github"
+	gh "github.com/google/go-github/github"
 )
 
 const (
@@ -21,7 +21,7 @@ const (
 	LabelsAttribute = "pull_request.labels"
 )
 
-func NewMessageHandler(client *github.Client, repo *storage.Repository, pauseLock *sync.RWMutex) *MessageHandler {
+func NewMessageHandler(client *gh.Client, repo *storage.Repository, pauseLock *sync.RWMutex) *MessageHandler {
 	return &MessageHandler{
 		client:    client,
 		repo:      repo,
@@ -31,7 +31,7 @@ func NewMessageHandler(client *github.Client, repo *storage.Repository, pauseLoc
 }
 
 type MessageHandler struct {
-	client *github.Client
+	client *gh.Client
 	repo   *storage.Repository
 	store  storage.BlobStore
 
@@ -51,7 +51,7 @@ func (m *MessageHandler) HandleMessage(n *nsq.Message) error {
 	m.pauseLock.RLock()
 	defer m.pauseLock.RUnlock()
 
-	var p partialMessage
+	var p github.PartialMessage
 	if err := json.Unmarshal(n.Body, &p); err != nil {
 		log.Error(err)
 		return nil // No need to retry
@@ -81,12 +81,12 @@ func (m *MessageHandler) handleEvent(timestamp int64, event, delivery string, pa
 }
 
 func (m *MessageHandler) prepareForStorage(o *blob.Blob) error {
-	if o.Type != config.EvtPullRequest || o.HasAttribute(LabelsAttribute) {
+	if o.Type != github.EvtPullRequest || o.HasAttribute(LabelsAttribute) {
 		return nil
 	}
 	number := o.Data.Get("number").MustInt()
 	log.Debugf("fetching labels for %s #%d", m.repo.PrettyName(), number)
-	l, _, err := m.client.Issues.ListLabelsByIssue(m.repo.User, m.repo.Repo, number, &github.ListOptions{})
+	l, _, err := m.client.Issues.ListLabelsByIssue(m.repo.User, m.repo.Repo, number, &gh.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("retrieve labels for issue %d: %v", number, err)
 	}

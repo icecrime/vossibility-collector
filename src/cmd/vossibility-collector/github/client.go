@@ -1,4 +1,4 @@
-package main
+package github
 
 import (
 	"net/http"
@@ -7,11 +7,11 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func NewClient(config *Config) *gh.Client {
+func NewClient(token string) *gh.Client {
 	var tc *http.Client
-	if config.GitHubAPIToken != "" {
+	if token != "" {
 		ts := oauth2.StaticTokenSource(&oauth2.Token{
-			AccessToken: config.GitHubAPIToken,
+			AccessToken: token,
 		})
 		tc = oauth2.NewClient(oauth2.NoContext, ts)
 	}

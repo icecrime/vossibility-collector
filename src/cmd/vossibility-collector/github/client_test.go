@@ -1,4 +1,4 @@
-package main
+package github
 
 import (
 	"net/http"
@@ -28,7 +28,7 @@ func simulateAPIRequest(t *testing.T, c *gh.Client) []*http.Request {
 }
 
 func TestClientWithoutToken(t *testing.T) {
-	c := NewClient(&Config{})
+	c := NewClient("")
 	requests := simulateAPIRequest(t, c)
 	if len(requests) != 1 {
 		t.Fatalf("unexpected number of requests %d, expected 1", len(requests))
@@ -39,7 +39,7 @@ func TestClientWithoutToken(t *testing.T) {
 }
 
 func TestClientWithToken(t *testing.T) {
-	c := NewClient(&Config{GitHubAPIToken: "t0k3n"})
+	c := NewClient("t0k3n")
 	requests := simulateAPIRequest(t, c)
 	if len(requests) != 1 {
 		t.Fatalf("unexpected number of requests %d, expected 1", len(requests))

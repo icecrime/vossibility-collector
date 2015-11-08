@@ -1,0 +1,27 @@
+package github
+
+const (
+	EvtCommitComment            = "commit_comment"
+	EvtCreate                   = "create"
+	EvtDelete                   = "delete"
+	EvtDeployment               = "deployment"
+	EvtDeploymentStatus         = "deployment_status"
+	EvtFollow                   = "follow"
+	EvtFork                     = "fork"
+	EvtForkApply                = "fork_apply"
+	EvtGollum                   = "gollum"
+	EvtIssueComment             = "issue_comment"
+	EvtIssues                   = "issues"
+	EvtMember                   = "member"
+	EvtMembership               = "membership"
+	EvtPageBuild                = "page_build"
+	EvtPublic                   = "public"
+	EvtPullRequest              = "pull_request"
+	EvtPullRequestReviewComment = "pull_request_review_comment"
+	EvtPush                     = "push"
+	EvtRelease                  = "release"
+	EvtRepositories             = "repositories"
+	EvtStatus                   = "status"
+	EvtTeamAdd                  = "team_add"
+	EvtWatch                    = "watch"
+)

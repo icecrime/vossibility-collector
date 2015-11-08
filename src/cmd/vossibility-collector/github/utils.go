@@ -1,4 +1,4 @@
-package main
+package github
 
 import (
 	"strconv"
@@ -9,7 +9,7 @@ import (
 	"github.com/google/go-github/github"
 )
 
-type partialMessage struct {
+type PartialMessage struct {
 	GitHubEvent    string `json:"X-GitHub-Event"`
 	GitHubDelivery string `json:"X-GitHub-Delivery"`
 	HubSignature   string `json:"X-Hub-Signature"`

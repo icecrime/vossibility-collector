@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 
+	"cmd/vossibility-collector/github"
 	"cmd/vossibility-collector/storage"
 
 	log "github.com/Sirupsen/logrus"
@@ -25,7 +26,7 @@ var syncCommand = cli.Command{
 // triggering the abuse detection mechanism.
 func doSyncCommand(c *cli.Context) {
 	config := ParseConfigOrDie(c.GlobalString("config"))
-	client := NewClient(config)
+	client := github.NewClient(config.GitHubAPIToken)
 	blobStore := storage.NewTransformingBlobStore()
 
 	// Get the list of repositories from command-line (defaults to all).
@@ -49,13 +50,13 @@ func doSyncCommand(c *cli.Context) {
 
 	// Configure a syncJob taking all issues (opened and closed) and storing
 	// in the snapshot store.
-	syncOptions := DefaultSyncOptions
+	syncOptions := github.DefaultSyncOptions
 	syncOptions.From = c.Int("from")
 	syncOptions.SleepPerPage = c.Int("sleep")
-	syncOptions.State = GitHubStateFilterAll
+	syncOptions.State = github.GitHubStateFilterAll
 	syncOptions.Storage = storage.StoreSnapshot
 
 	// Create and run the synchronization job.
 	log.Warnf("running sync jobs on repositories %s", strings.Join(repoToSync, ", "))
-	NewSyncCommandWithOptions(client, blobStore, &syncOptions).Run(repos)
+	github.NewSyncCommandWithOptions(client, blobStore, &syncOptions).Run(repos)
 }
