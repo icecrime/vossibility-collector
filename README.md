@@ -3,9 +3,9 @@ vossibility-collector
 
 [![Circle CI](https://circleci.com/gh/icecrime/vossibility-collector.svg?style=svg)](https://circleci.com/gh/icecrime/vossibility-collector)
 
-Vossibility-collector is the core component of vossibility, a project providing better visibility
-for your open source project. The project was initially started for [Docker](https://docker.io) but
-is not tied to it in any way.
+Vossibility-collector is the core component of [vossibility](https://github.com/icecrime/vossibility-stack)
+, a project providing better visibility for your open source project. The project was initially
+started for [Docker](https://docker.io) but is not tied to it in any way.
 
 # Overview
 
@@ -13,9 +13,10 @@ Vossibility-collector receives live GitHub data from a [NSQ](http://nsq.io/) que
 API](https://developer.github.com/v3/) on one end, and feeds structured data to Elastic Search on
 the other end. It provides:
 
-- The power of Elastic Search to search into your repository (e.g., "give me all pull requests
-comments from a user who's name is approximately ice and contains LGTM").  - The power of Kibana to
-build dashboards for your project: a basic example of what can be achieved is shown below.
+ - The power of Elastic Search to search into your repository (e.g., "give me all pull requests
+   comments from a user who's name is approximately ice and contains LGTM").
+ - The power of Kibana to build dashboards for your project: a basic example of what can be achieved
+   is shown below.
 
 ![Sample dashboard](https://github.com/icecrime/vossibility-collector/raw/master/resources/dashboard.png)
 
@@ -51,7 +52,7 @@ GLOBAL OPTIONS:
 
 Because different project may want to track different data, and that volumetry on [high activity
 projects](https://github.com/docker/docker) makes it unreasonable to store every bits of
-information, vossibility-collector was created to be highly configurable.
+information, vossibility-collector was designed to be highly configurable.
 
 The project use the [`toml` file format for its configurations. Example files can be found in the
 [`examples/`](https://github.com/icecrime/vossibility-collector/tree/master/examples) directory.
@@ -204,7 +205,3 @@ JSON.
   This effectively allows to enrich the value of a field with information in database: in our case,
 this allows to replace a single login such as `icecrime` into a structure object that contains
 information about the person's employer and maintainer status.
-
-# Project state
-
-The project is in a very early state, and most notably lacks testing and CI.
