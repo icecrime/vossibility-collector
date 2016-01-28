@@ -169,6 +169,12 @@ func (s *syncCmd) Run(repos []*storage.Repository) {
 		// Wait until indexing completes.
 		s.wgIndex.Wait()
 		log.Warn("done indexing documents in Elastic Search")
+
+		// we've closed the channels, but if the repo array is
+		// larger than 1, we need fresh channels for the next
+		// iteration of the for loop
+		s.toFetch = make(chan github.Issue, s.options.NumFetchProcs)
+		s.toIndex = make(chan githubIndexedItem, s.options.NumIndexProcs)
 	}
 }
 
