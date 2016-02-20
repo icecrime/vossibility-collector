@@ -80,6 +80,7 @@ type SerializedConfig struct {
 	GitHubAPIToken  string `toml:"github_api_token"`
 	PeriodicSync    string `toml:"sync_periodicity"`
 	NSQ             NSQConfig
+	Functions       map[string]string
 	Mapping         map[string][]string
 	Repositories    map[string]RepositoryConfig
 	EventSet        SerializedTable `toml:"event_set"`

@@ -86,6 +86,14 @@ Element            | Type   | Description
 ------------------ | -------|------------
 `not_analyzed`     | String array | Patterns to exclude from analyzer
 
+### `[functions]` section
+
+The `[functions]` section defines a collection of user-defined functions that can later be used in
+transformation definition. Each key defines the name for the user-defined function, and the value
+should be the path of an executable. During template evaluation, arguments to the function are
+passed as command line arguments to the executable, and its output is parsed as JSON and returned as
+the result of the function.
+
 ### `[repositories]` section
 
 The `[repositories]` section defines a collection of tables (in [toml

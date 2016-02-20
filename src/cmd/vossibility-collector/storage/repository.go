@@ -51,13 +51,8 @@ func NewRepository(givenName string, repoConfig *config.RepositoryConfig, fullCo
 	}
 
 	// Initialize repository specific transformations.
-	context := struct{ Repository RepositoryInfo }{Repository: r}
 	transfo := transformation.NewTransformations()
-	funcs := transfo.Builtins()
-	funcs["context"] = fnContext(context)
-	funcs["days_difference"] = fnDaysDifference
-	funcs["user_data"] = fnUserData
-	transfo.Funcs(funcs)
+	initializeTemplateFunc(r, transfo, fullConfig)
 
 	// Load transformations definitions from config.
 	if err := transfo.Load(fullConfig.Transformations); err != nil {
@@ -77,6 +72,20 @@ func NewRepository(givenName string, repoConfig *config.RepositoryConfig, fullCo
 		r.EventSet[event] = r.Transformations.Get(transfoName)
 	}
 	return r, nil
+}
+
+func initializeTemplateFunc(r *Repository, t *transformation.Transformations, fullConfig *config.SerializedConfig) {
+	// Register builtin functions.
+	context := struct{ Repository RepositoryInfo }{Repository: r}
+	t.Funcs["context"] = fnContext(context)
+	t.Funcs["days_difference"] = fnDaysDifference
+	t.Funcs["user_data"] = fnUserData
+
+	// Register user-defined functions. We do this after the builtins to give an
+	// opportunity to override them.
+	for name, binary := range fullConfig.Functions {
+		t.Funcs[name] = fnUserFunction(binary)
+	}
 }
 
 // periodFormat returns the string representation of a timestamp to be used in

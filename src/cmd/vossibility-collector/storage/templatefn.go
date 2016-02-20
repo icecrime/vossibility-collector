@@ -1,6 +1,10 @@
 package storage
 
-import "time"
+import (
+	"encoding/json"
+	"os/exec"
+	"time"
+)
 
 // Context is provided to transformations as a way to pass additional data to
 // existing templates.
@@ -62,4 +66,21 @@ func fnUserData(login string) *UserData {
 		return ud
 	}
 	return &UserData{Login: login}
+}
+
+// fnUserFunction executes an arbitrary binary, passing arbitrary parameters as
+// command line arguments.
+func fnUserFunction(binary string) func(...string) (interface{}, error) {
+	return func(params ...string) (interface{}, error) {
+		cmd := exec.Command(binary, params...)
+		b, err := cmd.Output()
+		if err != nil {
+			return nil, err
+		}
+		var i interface{}
+		if err := json.Unmarshal(b, &i); err != nil {
+			return nil, err
+		}
+		return i, nil
+	}
 }

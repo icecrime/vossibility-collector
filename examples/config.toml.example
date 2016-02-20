@@ -31,6 +31,11 @@ not_analyzed = [
     "*url"
 ]
 
+# List of user-defined function.
+
+[functions]
+example_fn = "/fn/example_fn"
+
 # List of repositories to monitor. For each repository:
 #   - user: GitHub user name
 #   - repo: GitHub repository name
@@ -74,7 +79,6 @@ not_analyzed = [
     # The "snapshot_pull_request" event is mandatory as Pull Request are always
     # stored.
     snapshot_pull_request = "pull_request"
-
 
 # Transformations to apply to different entity type before forwarding to the
 # storage backend. We usually don't need every field provided by GitHub,

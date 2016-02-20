@@ -9,24 +9,15 @@ import (
 
 // Transformations is a collection of Transformation for different event types.
 type Transformations struct {
-	funcs           template.FuncMap
+	Funcs           template.FuncMap
 	transformations map[string]Transformation
 }
 
 func NewTransformations() *Transformations {
-	return &Transformations{
+	t := &Transformations{
 		transformations: make(map[string]Transformation),
 	}
-}
-
-func (t *Transformations) Builtins() template.FuncMap {
-	return template.FuncMap{
-		"apply_transformation": t.fnApplyTransformation,
-	}
-}
-
-func (t *Transformations) Funcs(funcs template.FuncMap) *Transformations {
-	t.funcs = funcs
+	t.Funcs = t.builtins()
 	return t
 }
 
@@ -36,13 +27,19 @@ func (t *Transformations) Get(name string) Transformation {
 
 func (t *Transformations) Load(config config.SerializedTable) error {
 	for event, def := range config {
-		tr, err := TransformationFromConfig(def, t.funcs)
+		tr, err := TransformationFromConfig(def, t.Funcs)
 		if err != nil {
 			return err
 		}
 		t.transformations[event] = tr
 	}
 	return nil
+}
+
+func (t *Transformations) builtins() template.FuncMap {
+	return template.FuncMap{
+		"apply_transformation": t.fnApplyTransformation,
+	}
 }
 
 func (t *Transformations) fnApplyTransformation(name string, data interface{}) (interface{}, error) {

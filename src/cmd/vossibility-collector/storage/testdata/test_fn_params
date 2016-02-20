@@ -1,0 +1,13 @@
+#!/bin/bash
+
+function join { local IFS="$1"; shift; echo -n "$*"; }
+
+ARGS=()
+while (( "$#" )); do
+    ARGS+=( \"$1\" )
+    shift
+done
+
+echo -n '{"key": "value", "args": ['
+join "," ${ARGS[@]}
+echo ']}'

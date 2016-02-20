@@ -3,6 +3,7 @@ package storage
 import (
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	"github.com/mattbaird/elastigo/api"
@@ -59,5 +60,28 @@ func TestFnUserData(t *testing.T) {
 	}
 	if v := fnUserData("icecrime"); *v != (UserData{"icecrime", "Docker", true}) {
 		t.Fatalf("unexpected user data for icecrime %v", v)
+	}
+}
+
+func TestFnUserFunction(t *testing.T) {
+	if r, err := fnUserFunction("testdata/test_fn")(); err != nil {
+		t.Fatalf("unexpected error result for test_fn %v", err)
+	} else if !reflect.DeepEqual(r, map[string]interface{}{
+		"key": "value",
+	}) {
+		t.Fatalf("unexpected result for test_fn %v", r)
+	}
+
+	if r, err := fnUserFunction("testdata/missing_fn")(); err == nil {
+		t.Fatalf("expected error result for missing function, got %v", r)
+	}
+
+	if r, err := fnUserFunction("testdata/test_fn_params")("arg1", "arg2", "arg3"); err != nil {
+		t.Fatalf("unexpected error result for test_fn_params %v", err)
+	} else if !reflect.DeepEqual(r, map[string]interface{}{
+		"key":  "value",
+		"args": []interface{}{"arg1", "arg2", "arg3"},
+	}) {
+		t.Fatalf("unexpected result for test_fn_params %v", r)
 	}
 }
