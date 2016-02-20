@@ -1,5 +1,8 @@
-FROM golang:1.4.2
+FROM golang:1.6.0-alpine
 MAINTAINER Arnaud Porterie <icecrime@docker.com>
+
+# Install git
+RUN apk update && apk add git
 
 # Install GB dependency manager
 RUN go get github.com/constabulary/gb/...
