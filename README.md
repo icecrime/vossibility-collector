@@ -135,7 +135,7 @@ able to define your very own data model for the things you care about, and provi
 configuration-style definition of the way that data should be filled.
 
 For this, the project relies on a [modified
-version](https://github.com/icecrime/vossibility-collector/tree/master/src/github.com/icecrime/template)
+version](https://github.com/icecrime/vossibility-collector/tree/master/src/object/template)
 of the standard [`text/template`](http://golang.org/pkg/text/template/) Go package. This allows you
 to use the standard Go template DSL to describe your data mapping (think of it as a text-based API
 for runtime reflection).
