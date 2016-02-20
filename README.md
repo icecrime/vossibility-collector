@@ -18,7 +18,7 @@ the other end. It provides:
  - The power of Kibana to build dashboards for your project: a basic example of what can be achieved
    is shown below.
 
-![Sample dashboard](https://github.com/icecrime/vossibility-collector/raw/master/resources/dashboard.png)
+![Sample dashboard](https://github.com/icecrime/vossibility-collector/raw/master/resources/screen_1.png)
 
 # Usage
 
