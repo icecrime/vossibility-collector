@@ -1,14 +1,33 @@
-package transformation
+package storage
 
-import (
-	"time"
-)
+import "time"
+
+// Context is provided to transformations as a way to pass additional data to
+// existing templates.
+type Context struct {
+	// Repository gives information about the repository concerned by the event
+	// under transformation.
+	Repository RepositoryInfo
+}
+
+// RepositoryInfo provides information about the repository to the executed
+// templates.
+type RepositoryInfo interface {
+	// FullName returns the GitHub repository full name, whic is in the form
+	// "user/repo" (e.g., "icecrime/docker")
+	FullName() string
+
+	// PrettyName returns a vossibility specific string which identifies the
+	// repository but also includes its given name (which has no existence on
+	// GitHub).
+	PrettyName() string
+}
 
 // fnContext is a constant function passed down to templates as a mean to
 // access contextual information on the data being transformed (e.g.,
 // repository information).
-func fnContext(context Context) func() interface{} {
-	return func() interface{} {
+func fnContext(context Context) func() Context {
+	return func() Context {
 		return context
 	}
 }
@@ -34,16 +53,13 @@ func fnDaysDifference(lhs, rhs string) interface{} {
 // fact that a user is a maintainer or works for company X. It always returns
 // a UserData instance, which will only contain the login information when we
 // don't know more about the user.
-func fnUserData(login string) interface{} {
+func fnUserData(login string) *UserData {
 	// Ignore any error to retrieve the user data: we don't have entries for
 	// most of our users, and only store information for those who have
 	// particular status (employees and/or maintainers).
-	/* TODO
 	us := &userStore{}
 	if ud, err := us.Get(login); err == nil {
 		return ud
 	}
 	return &UserData{Login: login}
-	*/
-	return nil
 }

@@ -61,8 +61,7 @@ type transformingBlobStore struct {
 // a given repository.
 func (b *transformingBlobStore) Store(storage Storage, repo *Repository, blob *blob.Blob) error {
 	if trans := b.getTransformation(storage, repo, blob.Type); trans != nil {
-		ctx := transformation.Context{Repository: repo}
-		t, err := trans.Apply(ctx, blob)
+		t, err := trans.Apply(blob)
 		if err != nil {
 			return fmt.Errorf("applying transformation to event %q: %v", blob.Type, err)
 		}
@@ -73,7 +72,7 @@ func (b *transformingBlobStore) Store(storage Storage, repo *Repository, blob *b
 	return b.impl.Store(storage, repo, blob)
 }
 
-func (b *transformingBlobStore) getTransformation(storage Storage, repo *Repository, event string) *transformation.Transformation {
+func (b *transformingBlobStore) getTransformation(storage Storage, repo *Repository, event string) transformation.Transformation {
 	// Live and snapshot data have overlapping types: we can received a
 	// "pull_request" live event for a new pull request being opened, as well
 	// as a "pull_request" snapshot during a sync operation.

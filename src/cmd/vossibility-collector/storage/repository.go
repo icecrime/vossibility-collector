@@ -40,23 +40,30 @@ type Repository struct {
 	// difficult thing to anticipate, and is made even more complicated by the
 	// fact that a given transformation can call another one through the
 	// provided "apply_transformation" function.
-	Transformations transformation.Transformations
+	Transformations *transformation.Transformations
 }
 
 func NewRepository(givenName string, repoConfig *config.RepositoryConfig, fullConfig *config.SerializedConfig) (*Repository, error) {
 	r := &Repository{
-		EventSet:         make(map[string]*transformation.Transformation),
+		EventSet:         make(map[string]transformation.Transformation),
 		GivenName:        givenName,
 		RepositoryConfig: *repoConfig,
 	}
 
-	// Create repository specific transformations.
-	context := struct{ Repository transformation.RepositoryInfo }{Repository: r}
-	transformations, err := transformation.TransformationsFromConfig(context, fullConfig.Transformations)
-	if err != nil {
+	// Initialize repository specific transformations.
+	context := struct{ Repository RepositoryInfo }{Repository: r}
+	transfo := transformation.NewTransformations()
+	funcs := transfo.Builtins()
+	funcs["context"] = fnContext(context)
+	funcs["days_difference"] = fnDaysDifference
+	funcs["user_data"] = fnUserData
+	transfo.Funcs(funcs)
+
+	// Load transformations definitions from config.
+	if err := transfo.Load(fullConfig.Transformations); err != nil {
 		return nil, err
 	}
-	r.Transformations = transformations
+	r.Transformations = transfo
 
 	// Extract the specified event set for this repository.
 	evtSetName := repoConfig.EventSetName()
@@ -67,7 +74,7 @@ func NewRepository(givenName string, repoConfig *config.RepositoryConfig, fullCo
 
 	// Map the transformation to each of the configured events.
 	for event, transfoName := range evtSet {
-		r.EventSet[event] = r.Transformations[transfoName]
+		r.EventSet[event] = r.Transformations.Get(transfoName)
 	}
 	return r, nil
 }
