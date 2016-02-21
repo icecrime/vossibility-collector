@@ -173,5 +173,5 @@ The `[functions]` section defines a collection of user-defined functions that ca
 transformation definition. Each key defines the name for the user-defined function, and the value
 should be the path of an executable. During template evaluation, arguments to the function are
 passed as command line arguments to the executable, and its output is parsed as JSON and returned as
-the result of the function.
-
+the result of the function. The executable receives the `$ELASTICSEARCH` environment variable which
+value is the URL of the Elasticsearch server.

@@ -2,8 +2,11 @@ package storage
 
 import (
 	"encoding/json"
+	"os"
 	"os/exec"
 	"time"
+
+	"cmd/vossibility-collector/config"
 )
 
 // Context is provided to transformations as a way to pass additional data to
@@ -70,9 +73,12 @@ func fnUserData(login string) *UserData {
 
 // fnUserFunction executes an arbitrary binary, passing arbitrary parameters as
 // command line arguments.
-func fnUserFunction(binary string) func(...string) (interface{}, error) {
+func fnUserFunction(fullConfig *config.SerializedConfig, binary string) func(...string) (interface{}, error) {
 	return func(params ...string) (interface{}, error) {
 		cmd := exec.Command(binary, params...)
+		cmd.Env = os.Environ()
+		cmd.Env = append(cmd.Env, "ELASTICSEARCH="+fullConfig.ElasticSearch)
+
 		b, err := cmd.Output()
 		if err != nil {
 			return nil, err

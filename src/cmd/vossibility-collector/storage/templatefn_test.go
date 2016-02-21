@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"testing"
 
+	"cmd/vossibility-collector/config"
+
 	"github.com/mattbaird/elastigo/api"
 )
 
@@ -64,7 +66,9 @@ func TestFnUserData(t *testing.T) {
 }
 
 func TestFnUserFunction(t *testing.T) {
-	if r, err := fnUserFunction("testdata/test_fn")(); err != nil {
+	c := &config.SerializedConfig{}
+	c.ElasticSearch = "http://elasticsearch:9200"
+	if r, err := fnUserFunction(c, "testdata/test_fn")(); err != nil {
 		t.Fatalf("unexpected error result for test_fn %v", err)
 	} else if !reflect.DeepEqual(r, map[string]interface{}{
 		"key": "value",
@@ -72,11 +76,19 @@ func TestFnUserFunction(t *testing.T) {
 		t.Fatalf("unexpected result for test_fn %v", r)
 	}
 
-	if r, err := fnUserFunction("testdata/missing_fn")(); err == nil {
+	if r, err := fnUserFunction(c, "testdata/missing_fn")(); err == nil {
 		t.Fatalf("expected error result for missing function, got %v", r)
 	}
 
-	if r, err := fnUserFunction("testdata/test_fn_params")("arg1", "arg2", "arg3"); err != nil {
+	if r, err := fnUserFunction(c, "testdata/test_fn_env")(); err != nil {
+		t.Fatalf("unexpected error result for test_fn %v", err)
+	} else if !reflect.DeepEqual(r, map[string]interface{}{
+		"env": c.ElasticSearch,
+	}) {
+		t.Fatalf("unexpected result for test_fn_env %v (expected %v)", r, c.ElasticSearch)
+	}
+
+	if r, err := fnUserFunction(c, "testdata/test_fn_params")("arg1", "arg2", "arg3"); err != nil {
 		t.Fatalf("unexpected error result for test_fn_params %v", err)
 	} else if !reflect.DeepEqual(r, map[string]interface{}{
 		"key":  "value",

@@ -84,7 +84,7 @@ func initializeTemplateFunc(r *Repository, t *transformation.Transformations, fu
 	// Register user-defined functions. We do this after the builtins to give an
 	// opportunity to override them.
 	for name, binary := range fullConfig.Functions {
-		t.Funcs[name] = fnUserFunction(binary)
+		t.Funcs[name] = fnUserFunction(fullConfig, binary)
 	}
 }
 

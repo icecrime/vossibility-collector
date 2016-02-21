@@ -74,7 +74,7 @@ func (r RepositoryConfig) EventSetName() string {
 
 type SerializedTable map[string]map[string]string
 
-// SerializedConfig is the serialize version of the configuration.
+// SerializedConfig is the serialized version of the configuration.
 type SerializedConfig struct {
 	ElasticSearch   string
 	GitHubAPIToken  string `toml:"github_api_token"`
