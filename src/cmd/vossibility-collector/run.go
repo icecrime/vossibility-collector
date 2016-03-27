@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -11,7 +12,7 @@ import (
 	"cmd/vossibility-collector/github"
 	"cmd/vossibility-collector/storage"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 	"github.com/bitly/go-nsq"
 	"github.com/codegangsta/cli"
 	gh "github.com/google/go-github/github"
@@ -41,16 +42,16 @@ func doRunCommand(c *cli.Context) {
 	for {
 		select {
 		case <-stopChan:
-			log.Debug("All queues exited")
+			logrus.Debug("All queues exited")
 			return
 		case sig := <-s:
-			log.WithField("signal", sig).Debug("received signal")
+			logrus.WithField("signal", sig).Debug("received signal")
 			for _, q := range queues {
 				q.Consumer.Stop()
 			}
 		case <-time.After(nextTickTime):
 			lock.Lock() // Take a write lock, which pauses all queue processing.
-			log.Infof("Starting periodic sync")
+			logrus.Infof("Starting periodic sync")
 			runPeriodicSync(client, config)
 			nextTickTime = resetNextTickTime(config.PeriodicSync)
 			lock.Unlock()
@@ -63,12 +64,14 @@ type Queue struct {
 }
 
 func NewQueue(config *config.NSQConfig, handler nsq.Handler) (*Queue, error) {
+	logger := log.New(os.Stderr, "", log.Flags())
 	consumer, err := nsq.NewConsumer(config.Topic, config.Channel, nsq.NewConfig())
 	if err != nil {
 		return nil, err
 	}
 
 	consumer.AddHandler(handler)
+	consumer.SetLogger(logger, nsq.LogLevelWarning)
 	if err := consumer.ConnectToNSQLookupd(config.Lookupd); err != nil {
 		return nil, err
 	}
@@ -87,7 +90,7 @@ func createQueues(client *gh.Client, c *Config, lock *sync.RWMutex) []*Queue {
 		}
 		queue, err := NewQueue(qconf, NewMessageHandler(client, repo, lock))
 		if err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 		queues = append(queues, queue)
 	}
@@ -101,7 +104,7 @@ func monitorQueues(queues []*Queue) <-chan struct{} {
 		wg.Add(1)
 		go func(queue *Queue) {
 			<-queue.Consumer.StopChan
-			log.Debug("Queue stop channel signaled")
+			logrus.Debug("Queue stop channel signaled")
 			wg.Done()
 		}(q)
 	}
@@ -117,7 +120,7 @@ func monitorQueues(queues []*Queue) <-chan struct{} {
 
 func resetNextTickTime(p config.PeriodicSync) time.Duration {
 	nextTickTime := p.Next()
-	log.Infof("Next sync in %s (%s)", nextTickTime, time.Now().Add(nextTickTime).Format("Jan 2, 2006 at 15:04:05"))
+	logrus.Infof("Next sync in %s (%s)", nextTickTime, time.Now().Add(nextTickTime).Format("Jan 2, 2006 at 15:04:05"))
 	return nextTickTime
 }
 
